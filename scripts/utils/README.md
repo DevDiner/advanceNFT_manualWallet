@@ -6,7 +6,7 @@ This document explains its purpose, its architectural role in the project, and h
 
 ---
 
-## Architectural Distinction: The Two Worlds
+## Architectural Distinction: The Two Worlds (Distinction of our wallet vs `ether.js`)
 
 It is critical to understand that this project contains two different types of "wallets" for two completely different jobs:
 
