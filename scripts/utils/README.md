@@ -1,4 +1,4 @@
-# Manual Wallet Utility (`wallet.js`)
+# Built a wallet from scratch (`wallet.js`)
 
 This directory contains the `wallet.js` script, a low-level, from-scratch implementation of a basic cryptocurrency wallet. Its primary purpose is to fulfill the assignment requirement of manually handling nonces, gas, and raw transaction creation without the use of high-level wallet libraries like `ethers.Wallet`.
 
@@ -29,7 +29,7 @@ A user must **never** be asked to provide their private key to a website. Instea
 
 ---
 
-## How to Use `wallet.js` to Interact with the Smart Contract
+## How to Use `wallet.js` to Interact with with our dApp
 
 While a user cannot use it, you, the developer, can use `wallet.js` to call any function on the deployed smart contract. This is an excellent way to run automated tasks or to prove that your manual wallet implementation can handle complex interactions.
 
