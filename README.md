@@ -196,3 +196,13 @@ This script checks the balance of the relayer wallet and alerts you if it falls 
     ```bash
     npm run generate-keypair
     ```
+
+### To verify AdvancedNFT.sol on Sepolia
+```bash
+    npx hardhat verify --network sepolia   --constructor-args scripts/verify-args.js [CONTRACT_ADDRESS]
+```
+
+### To verify SimpleWallet.sol on Sepolia
+``` bash 
+    npx hardhat verify --network sepolia [CONTRACT_ADDRESS]
+```
