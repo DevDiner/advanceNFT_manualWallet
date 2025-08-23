@@ -128,10 +128,10 @@ This lets you test the entire application stack on a private blockchain running 
 
 5.  **Connect MetaMask to Localhost and Use the App:**
     *   Open MetaMask > Add Network > Add a network manually.
-    *   **Network Name:** `Hardhat Local`
-    *   **New RPC URL:** `http://127.0.0.1:8545`
-    *   **Chain ID:** `1337`
-    *   **Currency Symbol:** `GO`
+    *   **Network Name:** `Hardhat`
+    *   **New RPC URL:** `http://127.0.0.1:8545/`
+    *   **Chain ID:** `31337`
+    *   **Currency Symbol:** `HardhatETH`
     *   Import one of the test accounts from the `npx hardhat node` output using its private key.
 
 ### Option B: Live Testnet Deployment (Sepolia)
