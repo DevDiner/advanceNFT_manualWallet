@@ -5,7 +5,7 @@ import config from "../config";
 // import the real ABI created by Hardhat
 import AdvancedNFT from "../artifacts/contracts/AdvancedNFT.sol/AdvancedNFT.json";
 
-const EXPECTED_CHAIN_ID = BigInt(config.chainId);      // e.g. 31337n
+const EXPECTED_CHAIN_ID = config.chainIdBig;      // ie: 31337     
 const RPC_URL = config.rpcUrl || "http://127.0.0.1:8545";
 
 let _readOnly: JsonRpcProvider | null = null;
