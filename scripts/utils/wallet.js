@@ -1,7 +1,13 @@
 const axios = require("axios");
 const { keccak256 } = require("js-sha3");
-const { ec: EC } = require("elliptic");
-const rlp = require("rlp");
+//const { ec: EC } = require("elliptic");
+//const rlp = require("rlp");
+const {
+  Wallet,
+  serializeTransaction,
+  keccak256,
+  toQuantity,
+} = require("ethers");
 
 class ManualWallet {
   constructor(privateKey, rpcUrl, chainId) {
@@ -10,9 +16,11 @@ class ManualWallet {
     }
     this.rpcUrl = rpcUrl;
     this.chainId = BigInt(chainId);
-    const ec = new EC("secp256k1");
-    this.key = ec.keyFromPrivate(privateKey.replace("0x", ""), "hex");
-    this.address = this._getAddressFromKey(this.key);
+    // const ec = new EC("secp256k1");
+    // this.key = ec.keyFromPrivate(privateKey.replace("0x", ""), "hex");
+    // this.address = this._getAddressFromKey(this.key);
+    this.wallet = new Wallet(privateKey);
+    this.address = this.wallet.address;
     console.log(`Wallet initialized for address: ${this.address}`);
   }
 
