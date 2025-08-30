@@ -1,4 +1,4 @@
-// scripts/1_run_airdrop_simulation.js
+// scripts/1_run_airdrop.js
 const hre = require("hardhat");
 const fs = require("fs");
 const path = require("path");
@@ -70,29 +70,31 @@ async function pickSigners() {
 
 // -------- proofs --------
 function loadProofForUser(userAddr) {
-  const proofsJson = JSON.parse(
+  const data = JSON.parse(
     fs.readFileSync(path.join(__dirname, "..", "merkle-proofs.json"), "utf8")
   );
-  const proofsMap = proofsJson.proofs;
-  if (!proofsMap || typeof proofsMap !== "object") {
-    throw new Error("Unexpected proofs shape in merkle-proofs.json");
+  // FIX: Read from the new, more robust `claims` object.
+  const claimsMap = data.claims;
+  if (!claimsMap || typeof claimsMap !== "object") {
+    throw new Error("Unexpected claims shape in merkle-proofs.json");
   }
   const want = userAddr.toLowerCase();
-  let proof = proofsMap[userAddr] || proofsMap[userAddr.toLowerCase()];
-  if (!proof) {
-    for (const [addr, prf] of Object.entries(proofsMap)) {
-      if (addr.toLowerCase() === want) {
-        proof = prf;
-        break;
-      }
-    }
-  }
-  if (!proof) throw new Error(`No merkle proof found for ${userAddr}`);
 
-  const keysInOrder = Object.keys(proofsMap);
-  let index = keysInOrder.findIndex((k) => k.toLowerCase() === want);
-  if (index === -1) index = 0; // fallback
-  return { index, proof };
+  // FIX: Find the claim case-insensitively for robustness.
+  const userAddressKey = Object.keys(claimsMap).find(
+    (addr) => addr.toLowerCase() === want
+  );
+  if (!userAddressKey) {
+    throw new Error(`No merkle claim found for ${userAddr}`);
+  }
+
+  const claim = claimsMap[userAddressKey];
+  if (!claim || claim.index === undefined || !claim.proof) {
+    throw new Error(`Malformed merkle claim for ${userAddr}`);
+  }
+
+  // FIX: Return the correct index and proof directly from the file.
+  return { index: claim.index, proof: claim.proof };
 }
 
 async function getRevealDelayOrDefault(NFT, def = 10) {

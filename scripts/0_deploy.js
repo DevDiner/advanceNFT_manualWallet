@@ -67,10 +67,10 @@ async function main() {
 
   // 1. Build Merkle Tree
   const whitelistAddresses = [deployer.address, user.address];
-  const { root, proofs } = buildMerkleTree(whitelistAddresses);
+  const { root, claims } = buildMerkleTree(whitelistAddresses);
 
   const proofsPath = path.join(__dirname, "..", "merkle-proofs.json");
-  fs.writeFileSync(proofsPath, JSON.stringify({ root, proofs }, null, 2));
+  fs.writeFileSync(proofsPath, JSON.stringify({ root, claims }, null, 2));
   console.log(`Merkle proofs saved to ${proofsPath}`);
   console.log("Merkle Root:", root);
 

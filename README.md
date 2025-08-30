@@ -18,7 +18,7 @@ This project was built to demonstrate proficiency in a wide range of production-
 | &nbsp;&nbsp;&nbsp;↳ On-Chain Art & Metadata | **100% On-Chain NFTs:** Generation and storage of generative SVG artwork and metadata directly on the blockchain, ensuring permanence and decentralization. |
 | &nbsp;&nbsp;&nbsp;↳ Payment Splitting | **Financial Logic:** A mechanism to distribute minting revenue to multiple contributors based on a predefined share structure. |
 | &nbsp;&nbsp;&nbsp;↳ Smart Contract Wallets | **Account Abstraction Principles:** A factory pattern for deploying personal smart contract wallets for users, enabling advanced features like meta-transactions. |
-| **Backend (Node.js/Express)** | **Full-Stack Web3 Development:** Building a robust backend service to support a production-grade dApp with proper security, **enhanced error handling**, and environment-aware configuration. |
+| **Backend (Node.js/Vercel)** | **Full-Stack & Serverless Architecture:** Building a robust backend service designed for a production-grade dApp and deploying it to a modern, scalable **serverless** platform (Vercel). |
 | &nbsp;&nbsp;&nbsp;↳ Meta-Transaction Relayer | **Gasless User Experience:** A custom relayer that sponsors gas fees for users by securely accepting and broadcasting their signed, off-chain EIP-712 messages. |
 | **Frontend (React/Vite/Ethers.js)** | **Modern & Responsive dApp Development:** Building a polished, user-friendly, and performant decentralized application. |
 | &nbsp;&nbsp;&nbsp;↳ Multi-Asset Portfolio | **API Integration & Data Handling:** A wallet dashboard that integrates with the **Etherscan API** using a **resilient, throttled API client**. It discovers and displays a complete portfolio of ETH, ERC20, **ERC-721, and ERC-1155** assets. |
@@ -42,35 +42,9 @@ This project was built to demonstrate proficiency in a wide range of production-
 
 ---
 
-## Architectural Highlights
-
-Beyond the core features, this project includes several advanced architectural patterns that demonstrate production-level engineering.
-
-### 1. Resilient API Client (`ethersService.ts`)
-
-The service layer for interacting with external APIs is designed for high reliability, incorporating three key patterns:
--   **Promise-Based Request Throttling:** A sophisticated, non-blocking request queue serializes all calls to the Etherscan API. This guarantees that the app never exceeds the 5 calls/second rate limit, even under rapid, parallel fetching, thus preventing common API errors.
--   **Exponential Backoff Retries:** The client will automatically retry failed API requests with an increasing delay, making the application resilient to transient network issues or temporary API downtime.
--   **Universal Metadata Resolver:** The metadata fetching logic can intelligently parse and retrieve data from any source—fully on-chain `base64` URIs, decentralized `ipfs://` links (via a public gateway), and traditional `https://` URLs. This ensures the portfolio can display any type of NFT.
-
-### 2. Progressive Portfolio Loading (`WalletView.tsx` & `NFTGallery.tsx`)
-
-To ensure a fast and responsive user experience, the "My Wallet" page does not wait for all data to load before rendering.
--   **Immediate UI with Placeholders:** The NFT gallery renders instantly with loading placeholders for the entire collection.
--   **Staggered Data Fetching:** The app first fetches and displays the more common ERC-721 NFTs. While the user is viewing them, it fetches the ERC-1155 tokens in the background and seamlessly adds them to the gallery.
--   **Lazy-Loading Images:** Each NFT card is a self-contained component that fetches its own metadata (name and image) individually. This prevents a single slow-loading NFT from blocking the entire gallery.
-
-### 3. Production-Ready Relayer (`relayer/server.js`)
-
-The meta-transaction relayer is built with more than just basic functionality.
--   **Robust Input Validation:** It rigorously validates all incoming API requests to prevent malformed data from causing errors.
--   **Enhanced Error Handling:** The relayer can distinguish between different failure modes. It can identify on-chain contract reverts (user errors) and infrastructure problems (like the relayer being out of funds) and return clear, actionable error messages to the frontend.
-
----
-
 ## Comprehensive "How to Run" Guide
 
-This guide covers every workflow for both local development and live testnet interaction.
+This guide covers every workflow for local development, live testnet interaction, and Vercel deployment.
 
 ### Phase 0: Initial Project Setup (One-Time)
 
@@ -95,9 +69,7 @@ This guide covers every workflow for both local development and live testnet int
 
 This is the ideal environment for rapid development. Transactions are instant and require no real funds.
 
-#### 1A: Environment Setup (4 Terminals)
-
-Open four separate terminal windows in your project directory.
+#### 1A: Environment Setup (3 Terminals)
 
 1.  **Terminal 1: Start Local Blockchain**
     ```bash
@@ -109,18 +81,14 @@ Open four separate terminal windows in your project directory.
     ```bash
     npm run deploy
     ```
-    **Action:** Wait for it to complete. It creates `deployed-addresses.json`, `merkle-proofs.json`, and the crucial `.env.local` file for the frontend.
+    **Action:** This creates `deployed-addresses.json`, `merkle-proofs.json`, and the `.env.local` file for the frontend.
 
-3.  **Terminal 3: Start Relayer Server**
+3.  **Terminal 3: Start Frontend + Relayer (Vercel Dev Server)**
+    This single command starts a local server that perfectly simulates the Vercel environment, running both the Vite frontend and the serverless API functions together.
     ```bash
-    npm run start:relayer
+    npm run dev:vercel
     ```
-
-4.  **Terminal 4: Start Frontend dApp**
-    ```bash
-    npm run dev
-    ```
-    **Action:** Open the URL it provides (e.g., `http://localhost:5173`).
+    **Action:** Open the URL it provides (e.g., `http://localhost:3000`).
 
 #### 1B: MetaMask Configuration
 
@@ -132,94 +100,132 @@ Open four separate terminal windows in your project directory.
 
 #### 1C: Workflow 1 - Standard Minting (User Pays Gas)
 
-1.  **Set Sale State:** In a **new terminal**, use the utility command. This script is configured to automatically target your running `localhost` node.
+1.  **Set Sale State:** In a **new terminal**, use the utility command:
     ```bash
     npm run sale:public
     ```
 2.  **Connect & Mint:**
-    *   Go to the dApp website and refresh (or click the new refresh button). The status should be "Public Sale Active".
+    *   Go to the dApp website and refresh. The status should be "Public Sale Active".
     *   Click **"Connect Wallet"**.
     *   On the "Minter" page, click **"Generate Secure Secret"**.
-    *   Click the **`Commit with MetaMask (0.01 ETH)`** button and **Confirm** in MetaMask.
-    *   After the commit succeeds, wait for the reveal window to open (this is instant on Hardhat).
-    *   Click the **"Reveal & Mint NFT"** button and **Confirm** in MetaMask.
-    *   **Verification:** The "Last Minted NFT" preview will update with your new on-chain art.
+    *   Click **`Commit with MetaMask (0.01 ETH)`** and **Confirm** in MetaMask.
+    *   After the commit, wait for the reveal window (instant on Hardhat).
+    *   Click **"Reveal & Mint NFT"** and **Confirm** in MetaMask.
+    *   **Verification:** The "Last Minted NFT" preview will update.
 
 #### 1D: Workflow 2 - Gasless Minting (Smart Wallet)
 
 1.  **Set Sale State:** Ensure the sale is open (`npm run sale:public`).
-2.  **Create Smart Wallet:** Navigate to the **"My Wallet"** page and click **"Create My Smart Wallet (Gasless)"**. The relayer will deploy your wallet.
-3.  **Fund the Smart Wallet:** The relayer pays for gas, but the user pays the mint price.
-    *   Copy your new **"Smart Wallet Address"** from the dashboard.
+2.  **Create Smart Wallet:** Navigate to the **"My Wallet"** page and click **"Create My Smart Wallet (Gasless)"**. The local Vercel server will handle the deployment.
+3.  **Fund the Smart Wallet:**
+    *   Copy your new **"Smart Wallet Address"**.
     *   In MetaMask, send **0.01 ETH** to this address.
 4.  **Mint Gaslessly:**
     *   Navigate back to the **"Minter"** page.
     *   Click **"Generate Secure Secret"**.
-    *   Click **"Commit Gaslessly via Smart Wallet"**. MetaMask will ask for a **signature** (free). **Sign** the message.
-    *   After the relayer processes the commit, click **"Reveal & Mint NFT"** and **Sign** the second message.
-    *   **Verification:** Navigate to the "My Wallet" page. The new NFT will appear in the gallery, and the ETH balance will have decreased.
+    *   Click **"Commit Gaslessly via Smart Wallet"**. MetaMask will ask for a **signature** (free).
+    *   After the commit, click **"Reveal & Mint NFT"** and **Sign** the second message.
+    *   **Verification:** Navigate to "My Wallet". The new NFT will be in the gallery.
 
 #### 1E: Workflow 3 - `wallet.js` Proof of Concept
 
-This script demonstrates your from-scratch wallet by minting an NFT without the frontend.
-
-1.  **Prerequisites:** Your local environment (Terminals 1, 2, 3) must be running.
+1.  **Prerequisites:** Your local environment (Terminals 1, 2) must be running.
 2.  **Configure User:** In `.env`, set `USER_PRIVATE_KEY` to the private key for "Account #3" from Terminal 1.
 3.  **Run Script:** In a new terminal, execute `npm run sim:manual`.
-4.  **Verification:** The script will output its progress, performing the full commit-reveal flow from scratch and confirming the mint.
+4.  **Verification:** The script will output its progress, performing the full commit-reveal flow.
 
 ---
 
 ### Phase 2: Live Testing on Sepolia
 
-This uses a real public testnet. Transactions are permanent and require real testnet funds.
+This uses a real public testnet. **Before starting this phase, you must complete Phase 3 to get a public relayer URL.**
 
 #### 2A: Environment and Deployment
 
 1.  **Configure `.env` for Sepolia:**
-    *   `SEPOLIA_RPC_URL`: Your RPC URL for Sepolia (from Alchemy, Infura, etc.).
-    *   `PRIVATE_KEY`: Private key of your **Deployer/Owner** wallet.
-    *   `RELAYER_PRIVATE_KEY`: Private key of your **Relayer** wallet.
-    *   `USER_PRIVATE_KEY`: Private key of a separate **Test User** wallet.
-    *   `ETHERSCAN_API_KEY`: Your Etherscan API key for contract verification.
-2.  **Fund Your Wallets:** Use a public faucet (e.g., [sepoliafaucet.com](https://sepoliafaucet.com/)) to get Sepolia ETH for your **Deployer** and **Relayer** wallets.
-3.  **Deploy to Sepolia:** Run the deployment script. This will also verify the contracts on Etherscan.
+    *   Fill out all the Sepolia-related variables in your `.env` file (RPC URL, private keys, Etherscan key, and the Vercel URL from Phase 3).
+2.  **Fund Your Wallets:** Use a public faucet to get Sepolia ETH for your **Deployer** and **Relayer** wallets.
+3.  **Deploy Contracts to Sepolia:**
     ```bash
     npm run deploy:sepolia
     ```
-4.  **Start Relayer & Frontend:** In separate terminals:
+4.  **Start Frontend (Locally):**
+    You can test against the live Sepolia contracts using your local Vercel dev server. It will automatically use the Sepolia configuration from `.env.local`.
     ```bash
-    npm run start:relayer # Terminal 1
-    npm run dev           # Terminal 2
+    npm run dev:vercel
     ```
 5.  **MetaMask:** Switch your MetaMask network to "Sepolia".
 
 #### 2B: All Workflows on Sepolia
 
-The user journeys are identical to the local versions, with a few key differences:
-
-*   **Setting Sale State:** To set the sale state on Sepolia, use the new, dedicated scripts.
+The user journeys are identical to the local versions.
+*   **Setting Sale State:** Use the dedicated Sepolia scripts:
     ```bash
     npm run sale:public:sepolia
     ```
-*   **Transaction Speed:** Transactions will take 15-30 seconds to confirm.
-*   **Portfolio View:** On the "My Wallet" page, the dashboard will now use the Etherscan API to discover and display **all ERC20 tokens and NFTs** your smart wallet owns.
-*   **Manual Wallet Script:** To run the `wallet.js` demo on Sepolia:
-    ```bash
-    npm run sim:manual:sepolia
-    ```
-*   **Verification:** You can track all your transactions and view your verified contracts on [Sepolia Etherscan](https://sepolia.etherscan.io/).
+*   **Transaction Speed:** Transactions will take 15-30 seconds.
+*   **Portfolio View:** The "My Wallet" page will now use the Etherscan API to show **all** your assets.
+*   **Manual Wallet Script:** `npm run sim:manual:sepolia`
 
 ---
 
-### Developer Note: `localhost` vs `hardhat` Network
+### Phase 3: Deploying to Vercel (Single Project)
 
-It is critical to understand the difference between Hardhat's two local network options to avoid state synchronization issues:
+This guide covers the modern, unified workflow for deploying your full-stack application (frontend and API) to a single Vercel URL.
 
--   `localhost`: This configuration tells Hardhat to connect to an **external, persistent blockchain node** that you run in a separate terminal with `npx hardhat node`. All scripts using `--network localhost` will interact with this single, shared state. **This is the correct network for local dApp development.**
--   `hardhat`: This is an **in-process, temporary network** that Hardhat creates in memory *for the duration of a single script* and then destroys. Every script run with `--network hardhat` (or no network flag) gets a fresh, empty blockchain.
+#### 3A: Step 1 - Install Vercel CLI & Link Project
 
-**Rule of Thumb:** When interacting with your dApp frontend, always run your Hardhat scripts and tasks against the `localhost` network to ensure they are targeting the same blockchain state. To make this easier, the `npm` scripts in this project now default to `--network localhost`.
+1.  **Install Vercel CLI:** `npm install -g vercel`
+2.  **Login to Vercel:** `vercel login`
+3.  **Link your local project:** `vercel link`
+    *   Follow the prompts to create a **new Vercel project**. Vercel will automatically detect that you have a Vite frontend and serverless functions in the `/api` directory.
+
+#### 3B: Step 2 - Configure Environment Variables on Vercel
+
+Your serverless API functions need access to your secrets to operate on the Sepolia network.
+1.  Go to your project's dashboard on the Vercel website.
+2.  Navigate to **Settings -> Environment Variables**.
+3.  Add the following variables, copying their values from your local `.env` file.
+
+| Variable Name | Value | Description |
+| :--- | :--- | :--- |
+| `NETWORK` | `sepolia` | Tells the relayer to use the Sepolia RPC. |
+| `SEPOLIA_RPC_URL`| `https://sepolia.infura.io/v3/...` | Your Sepolia RPC URL. |
+| `RELAYER_PRIVATE_KEY`| `0x...` | The private key for your relayer wallet. |
+
+#### 3C: Step 3 - The Vercel Deployment Workflow
+
+Vercel provides three main commands for different environments.
+
+1.  **Local Development (`npm run dev:vercel`)**
+    *   **What it does:** Runs the entire Vercel environment (frontend + API) on your local machine.
+    *   **Use it for:** All day-to-day development and testing on the Hardhat network.
+
+2.  **Preview Deployment (`npm run deploy:vercel`)**
+    *   **What it does:** Deploys your current code to a unique, temporary URL (e.g., `my-project-git-my-branch-hash.vercel.app`).
+    *   **Use it for:** Testing your changes on a live network like Sepolia before merging them. Share this URL with teammates for review.
+
+3.  **Production Deployment (`npm run deploy:vercel:prod`)**
+    *   **What it does:** Deploys your code to the main, public URL for your project.
+    *   **Use it for:** The final release when your changes are complete and tested.
+
+**Action:** Run a preview deployment to get your initial relayer URL:
+```bash
+npm run deploy:vercel
+```
+Vercel will give you a public URL. **Copy this URL.**
+
+#### 3D: Step 4 - Update Local Config & Re-Deploy Contracts
+
+1.  **Update `.env` file:** Open your local `.env` file and add/update the `RELAYER_URL_SEPOLIA` variable with the URL you just copied.
+    ```
+    RELAYER_URL_SEPOLIA=https-your-project-preview-url.vercel.app
+    ```
+2.  **Re-run the deployment script:** This injects the new URL into the frontend's configuration.
+    ```bash
+    npm run deploy:sepolia
+    ```
+Your dApp is now configured to use your live relayer on the Sepolia network! You can now proceed to **Phase 2**.
 
 ---
 
@@ -227,45 +233,26 @@ It is critical to understand the difference between Hardhat's two local network 
 
 | Command | Description |
 | :--- | :--- |
-| `npm run deploy` | Deploys contracts to the `localhost` network (your running Hardhat node). |
-| `npm run deploy:sepolia` | Deploys contracts to the Sepolia testnet and verifies them on Etherscan. |
-| `npm run start:relayer` | Starts the backend meta-transaction relayer server. |
-| `npm run sale:public` | **Utility:** Sets the NFT contract sale state to `PublicSale` on `localhost`. |
-| `npm run sale:public:sepolia` | **Utility:** Sets the NFT contract sale state to `PublicSale` on `sepolia`. |
-| `npm run sale:presale` | **Utility:** Sets the NFT contract sale state to `Presale` on `localhost`. |
-| `npm run sale:presale:sepolia` | **Utility:** Sets the NFT contract sale state to `Presale` on `sepolia`. |
-| `npm run sale:closed` | **Utility:** Sets the NFT contract sale state to `Closed` on `localhost`. |
-| `npm run sale:closed:sepolia` | **Utility:** Sets the NFT contract sale state to `Closed` on `sepolia`. |
-| `npm run sim:public` | **Simulation:** Runs an automated, end-to-end test of the public mint flow on `localhost`. |
-| `npm run sim:public:sepolia` | **Simulation:** Runs an automated, end-to-end test of the public mint flow on `sepolia`. |
-| `npm run sim:airdrop` | **Simulation:** Runs an automated, end-to-end test of the airdrop claim flow on `localhost`. |
-| `npm run sim:airdrop:sepolia` | **Simulation:** Runs an automated, end-to-end test of the airdrop claim flow on `sepolia`. |
+| `npm run deploy` | Deploys contracts to the `localhost` network. |
+| `npm run deploy:sepolia` | Deploys contracts to Sepolia and verifies them on Etherscan. |
+| `npm run dev` | Starts the standard Vite dev server (frontend only). |
+| `npm run dev:vercel` | Starts the **local Vercel development server** (frontend + API). |
+| `npm run deploy:vercel` | Deploys a **preview** build to a unique Vercel URL for testing. |
+| `npm run deploy:vercel:prod`| Deploys a **production** build to the main Vercel URL. |
+| `npm run sale:public` | **Utility:** Sets sale state to `PublicSale` on `localhost`. |
+| `npm run sale:public:sepolia` | **Utility:** Sets sale state to `PublicSale` on `sepolia`. |
+| `npm run sim:public` | **Simulation:** Runs an end-to-end test of the public mint on `localhost`. |
+| `npm run sim:airdrop` | **Simulation:** Runs an end-to-end test of the airdrop claim on `localhost`. |
 | `npm run sim:manual` | **Simulation:** Runs the `wallet.js` demo to mint an NFT from scratch on `localhost`. |
-| `npm run sim:manual:sepolia` | **Simulation:** Runs the `wallet.js` demo to mint an NFT from scratch on `sepolia`. |
-| `npm run monitor:relayer` | **Utility:** Checks and reports the balance of the relayer wallet to prevent downtime. |
 | `npm run test` | Runs the automated gas-comparison test suite. |
-| `npm run generate-keypair` | **Utility:** Generates a new keypair to demonstrate cryptographic principles. |
 
 ---
 
 ## Project Structure
 
-This project is organized as a monorepo with clear separation of concerns between the different parts of the full-stack application.
-
--   `/contracts`: Contains all Solidity smart contracts (`AdvancedNFT.sol`, `SimpleWallet.sol`, `SimpleWalletFactory.sol`). This is the on-chain logic.
+-   `/api`: Contains the Vercel-native serverless functions for the relayer backend.
+-   `/contracts`: Contains all Solidity smart contracts.
 -   `/scripts`: Holds all Hardhat scripts for automating development tasks.
-    -   `/scripts/utils`: Contains shared utilities used by other scripts, such as the Merkle tree builder and the from-scratch `wallet.js`.
-    -   `0_deploy.js`: The single, reliable script for deploying and configuring all contracts.
-    -   `1_...` & `2_...`: End-to-end simulation scripts for the main user journeys.
-    -   Other scripts are developer utilities for testing and management.
--   `/relayer`: The complete Node.js/Express backend server for meta-transactions. It has its own logic for handling API requests, validating data, and submitting transactions to the blockchain.
 -   `/src`: The source code for the React/Vite frontend dApp.
-    -   `/src/components`: Contains all the reusable React components.
-        -   `/src/components/shared`: Contains generic, reusable UI components like buttons and cards.
-    -   `/src/services`: Handles all communication with the blockchain and external APIs.
-    -   `App.tsx`: The main application component that manages top-level state.
-    -   `config.ts`: The environment-aware configuration file for the frontend.
--   `/test`: The automated test suite (using Chai) for the smart contracts.
--   `hardhat.config.js`: The central configuration file for the Hardhat development environment, including the custom `set-sale-state` task.
--   `deployed-addresses.json`: An auto-generated file that stores the addresses of the most recently deployed contracts for the backend scripts to use.
--   `.env.local`: An auto-generated file that stores public configuration variables for the frontend.
+-   `hardhat.config.js`: The central configuration file for the Hardhat environment.
+-   `vercel.json`: The configuration file for deploying the project to Vercel.

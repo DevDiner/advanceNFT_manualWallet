@@ -1,23 +1,27 @@
 const { MerkleTree } = require("merkletreejs");
-const { keccak256 } = require("js-sha3");
 const { ethers } = require("ethers");
 
 function buildMerkleTree(addresses) {
-    const leaves = addresses.map((address, index) => {
-        const packed = ethers.solidityPacked(["uint256", "address"], [index, address]);
-        return Buffer.from(ethers.toBeArray(ethers.keccak256(packed)));
-    });
+  // FIX: The leaf must be keccak256(abi.encodePacked(index, address)) to match
+  // the smart contract's verification logic. Hashing only the address is incorrect.
+  const leaves = addresses.map((addr, index) =>
+    ethers.solidityPackedKeccak256(["uint256", "address"], [index, addr])
+  );
 
-    const tree = new MerkleTree(leaves, (el) => Buffer.from(keccak256.arrayBuffer(el)), { sortPairs: true });
-    
-    const root = tree.getHexRoot();
+  const tree = new MerkleTree(leaves, ethers.keccak256, { sortPairs: true });
 
-    const proofs = {};
-    addresses.forEach((address, index) => {
-        proofs[address] = tree.getHexProof(leaves[index]);
-    });
+  const root = tree.getHexRoot();
 
-    return { root, proofs };
+  // FIX: Generate a more robust claims object that includes the index for each user.
+  // This prevents fragile index lookups on the frontend and in scripts.
+  const claims = {};
+  addresses.forEach((address, index) => {
+    const proof = tree.getHexProof(leaves[index]);
+    claims[address] = { index, proof };
+  });
+
+  // The root and the claims object are saved. `proofs` is renamed to `claims` for clarity.
+  return { root, claims };
 }
 
 module.exports = { buildMerkleTree };

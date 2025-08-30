@@ -11,13 +11,9 @@ import { MintingInterfaceProps } from '../types';
 import Alert from './shared/Alert';
 import merkleData from '../../merkle-proofs.json';
 
-interface CommitRevealFormProps extends MintingInterfaceProps {
-    isAirdrop: boolean;
-}
-
 interface MerkleProofData {
     root: string;
-    proofs: { [address: string]: string[] };
+    claims: { [address: string]: { index: number; proof: string[] } };
 }
 const typedMerkleData: MerkleProofData = merkleData as any;
 
@@ -66,6 +62,10 @@ const findRevertReason = (err: any): string | null => {
     return null;
 };
 
+// FIX: Define CommitRevealFormProps by extending MintingInterfaceProps to resolve missing type error.
+interface CommitRevealFormProps extends MintingInterfaceProps {
+    isAirdrop: boolean;
+}
 
 const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalletAddress, onMintSuccess, isAirdrop, mintPrice }) => {
     const [mintingState, setMintingState] = useState<MintingState>({ status: 'idle', message: null, txHash: null });
@@ -207,16 +207,19 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalle
 
     useEffect(() => {
         if (isAirdrop && account) {
-            const proofsMap = typedMerkleData.proofs;
+            // FIX: Read from the new, more robust `claims` object structure.
+            const claimsMap = typedMerkleData.claims;
             const lowercasedAccount = account.toLowerCase();
-            const userAddressKey = Object.keys(proofsMap).find(addr => addr.toLowerCase() === lowercasedAccount);
+            
+            // FIX: Find the user's claim data case-insensitively.
+            const userAddressKey = Object.keys(claimsMap).find(addr => addr.toLowerCase() === lowercasedAccount);
             
             if (userAddressKey) {
+                const claim = claimsMap[userAddressKey];
                 setIsWhitelisted(true);
-                setMerkleProof(proofsMap[userAddressKey]);
-                // This index lookup is unreliable but matches the original logic.
-                const userIndex = Object.keys(proofsMap).findIndex(k => k.toLowerCase() === lowercasedAccount);
-                setMerkleIndex(userIndex >= 0 ? userIndex : 0);
+                // FIX: Set the correct index and proof from the file, avoiding fragile lookups.
+                setMerkleProof(claim.proof);
+                setMerkleIndex(claim.index);
             } else {
                 setIsWhitelisted(false);
             }
