@@ -1,7 +1,5 @@
 import { ethers } from 'ethers';
 
-// Fix: Add global type declarations for window.ethereum and import.meta.env
-// to resolve TypeScript errors across the application.
 declare global {
     interface Window {
         ethereum?: any;
@@ -13,7 +11,6 @@ declare global {
         readonly VITE_NFT_ADDRESS: string;
         readonly VITE_FACTORY_ADDRESS: string;
         readonly VITE_ETHERSCAN_API_KEY: string;
-        // FIX: Add missing environment variable to global type definition.
         readonly VITE_MAINNET_RPC_URL: string;
     }
     interface ImportMeta {

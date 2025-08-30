@@ -1,4 +1,4 @@
-// scripts/1_run_airdrop.js
+// scripts/1_run_airdrop_simulation.js
 const hre = require("hardhat");
 const fs = require("fs");
 const path = require("path");
@@ -71,7 +71,10 @@ async function pickSigners() {
 // -------- proofs --------
 function loadProofForUser(userAddr) {
   const data = JSON.parse(
-    fs.readFileSync(path.join(__dirname, "..", "merkle-proofs.json"), "utf8")
+    fs.readFileSync(
+      path.join(__dirname, "..", "src", "merkle-proofs.json"),
+      "utf8"
+    )
   );
   // FIX: Read from the new, more robust `claims` object.
   const claimsMap = data.claims;

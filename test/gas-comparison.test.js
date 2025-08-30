@@ -4,14 +4,15 @@ const { buildMerkleTree } = require("../scripts/utils/buildMerkleTree");
 
 describe("Gas Consumption Comparison: Mapping vs. Bitmap", function () {
   let nft, owner, addr1, addr2;
-  let proofs;
+  let claims;
+  let whitelist;
 
   beforeEach(async function () {
     [owner, addr1, addr2, _] = await ethers.getSigners();
 
-    const whitelist = [owner.address, addr1.address, addr2.address];
-    const { root, proofs: generatedProofs } = buildMerkleTree(whitelist);
-    proofs = generatedProofs;
+    whitelist = [owner.address, addr1.address, addr2.address];
+    const { root, claims: generatedClaims } = buildMerkleTree(whitelist);
+    claims = generatedClaims;
 
     const AdvancedNFT = await ethers.getContractFactory("AdvancedNFT");
     nft = await AdvancedNFT.deploy(
@@ -30,14 +31,14 @@ describe("Gas Consumption Comparison: Mapping vs. Bitmap", function () {
       ethers.AbiCoder.defaultAbiCoder().encode(["bytes32"], [secret])
     );
 
-    await nft.connect(minter).commitPresale(commitHash);
+    await nft.connect(minter).commitAirdrop(commitHash);
 
     const revealDelay = await nft.REVEAL_DELAY();
     for (let i = 0; i < Number(revealDelay); i++) {
       await ethers.provider.send("evm_mine");
     }
 
-    const tx = await nft.connect(minter).revealPresale(index, secret, proof);
+    const tx = await nft.connect(minter).revealAirdrop(index, secret, proof);
     const receipt = await tx.wait();
     return receipt.gasUsed;
   }
@@ -45,8 +46,11 @@ describe("Gas Consumption Comparison: Mapping vs. Bitmap", function () {
   it("should measure gas for minting with mapping", async function () {
     await nft.setUseBitmap(false); // Use mapping
 
-    const gasUsed1 = await mintWithProof(addr1, 1, proofs[addr1.address]);
-    const gasUsed2 = await mintWithProof(addr2, 2, proofs[addr2.address]);
+    const { index: addr1Index, proof: addr1Proof } = claims[addr1.address];
+    const { index: addr2Index, proof: addr2Proof } = claims[addr2.address];
+
+    const gasUsed1 = await mintWithProof(addr1, addr1Index, addr1Proof);
+    const gasUsed2 = await mintWithProof(addr2, addr2Index, addr2Proof);
 
     console.log(`\tGas used (mapping) - First mint: ${gasUsed1.toString()}`);
     console.log(`\tGas used (mapping) - Second mint: ${gasUsed2.toString()}`);
@@ -57,8 +61,11 @@ describe("Gas Consumption Comparison: Mapping vs. Bitmap", function () {
   it("should measure gas for minting with bitmap", async function () {
     await nft.setUseBitmap(true); // Use bitmap
 
-    const gasUsed1 = await mintWithProof(addr1, 1, proofs[addr1.address]);
-    const gasUsed2 = await mintWithProof(addr2, 2, proofs[addr2.address]);
+    const { index: addr1Index, proof: addr1Proof } = claims[addr1.address];
+    const { index: addr2Index, proof: addr2Proof } = claims[addr2.address];
+
+    const gasUsed1 = await mintWithProof(addr1, addr1Index, addr1Proof);
+    const gasUsed2 = await mintWithProof(addr2, addr2Index, addr2Proof);
 
     console.log(`\tGas used (bitmap) - First mint: ${gasUsed1.toString()}`);
     console.log(`\tGas used (bitmap) - Second mint: ${gasUsed2.toString()}`);

@@ -9,7 +9,7 @@ import { SIMPLE_WALLET_ABI } from '../constants';
 import axios from 'axios';
 import { MintingInterfaceProps } from '../types';
 import Alert from './shared/Alert';
-import merkleData from '../../merkle-proofs.json';
+import merkleData from '../merkle-proofs.json';
 
 interface MerkleProofData {
     root: string;
