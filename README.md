@@ -12,19 +12,19 @@ This project was built to demonstrate proficiency in a wide range of production-
 | Technology/Concept | Skills Demonstrated |
 | :--- | :--- |
 | **Smart Contracts (Solidity)** | **Advanced Contract Architecture:** Deep understanding of secure, gas-efficient, and feature-rich smart contract development using **OpenZeppelin Contracts**. |
-| &nbsp;&nbsp;&nbsp;↳ **Commit-Reveal Scheme** | **Fair Minting & Front-Running Prevention:** Implementation of a two-step minting process with a timed reveal window to ensure fairness and unpredictability. |
-| &nbsp;&nbsp;&nbsp;↳ **Merkle Tree Airdrop** | **Gas Efficiency & Scalability:** A gas-efficient system for managing a large presale whitelist on-chain, proving a deep understanding of data structures. |
-| &nbsp;&nbsp;&nbsp;↳ **On-Chain Art & Metadata** | **100% On-Chain NFTs:** Generation and storage of generative SVG artwork and metadata directly on the blockchain, ensuring permanence and decentralization. |
-| &nbsp;&nbsp;&nbsp;↳ **Payment Splitting** | **Financial Logic:** A mechanism to distribute minting revenue to multiple contributors based on a predefined share structure. |
-| &nbsp;&nbsp;&nbsp;↳ **Smart Contract Wallets** | **Account Abstraction Principles:** A factory pattern for deploying personal smart contract wallets for users, enabling advanced features like meta-transactions. |
-| **Backend (Node.js/Express)** | **Full-Stack Web3 Development:** Building a robust backend service to support a production-grade dApp with proper security and error handling. |
-| &nbsp;&nbsp;&nbsp;↳ **Meta-Transaction Relayer** | **Gasless User Experience:** A custom relayer that sponsors gas fees for users by securely accepting and broadcasting their signed, off-chain EIP-712 messages. |
+| &nbsp;&nbsp;&nbsp;↳ Commit-Reveal Scheme | **Fair Minting & Front-Running Prevention:** Implementation of a two-step minting process with a timed reveal window to ensure fairness and unpredictability. |
+| &nbsp;&nbsp;&nbsp;↳ Merkle Tree Airdrop | **Gas Efficiency & Scalability:** A gas-efficient system for managing a large presale whitelist on-chain, proving a deep understanding of data structures. |
+| &nbsp;&nbsp;&nbsp;↳ On-Chain Art & Metadata | **100% On-Chain NFTs:** Generation and storage of generative SVG artwork and metadata directly on the blockchain, ensuring permanence and decentralization. |
+| &nbsp;&nbsp;&nbsp;↳ Payment Splitting | **Financial Logic:** A mechanism to distribute minting revenue to multiple contributors based on a predefined share structure. |
+| &nbsp;&nbsp;&nbsp;↳ Smart Contract Wallets | **Account Abstraction Principles:** A factory pattern for deploying personal smart contract wallets for users, enabling advanced features like meta-transactions. |
+| **Backend (Node.js/Express)** | **Full-Stack Web3 Development:** Building a robust backend service to support a production-grade dApp with proper security, **enhanced error handling**, and environment-aware configuration. |
+| &nbsp;&nbsp;&nbsp;↳ Meta-Transaction Relayer | **Gasless User Experience:** A custom relayer that sponsors gas fees for users by securely accepting and broadcasting their signed, off-chain EIP-712 messages. |
 | **Frontend (React/Vite/Ethers.js)** | **Modern & Responsive dApp Development:** Building a polished, user-friendly, and performant decentralized application. |
-| &nbsp;&nbsp;&nbsp;↳ **Multi-Asset Portfolio** | **API Integration & Data Handling:** A wallet dashboard that integrates with the **Etherscan API** to discover and display a user's complete portfolio of ETH, ERC20 tokens, and NFTs from any collection. |
-| &nbsp;&nbsp;&nbsp;↳ **Network-Aware UI** | **Robust User Experience:** The frontend intelligently adapts its features based on the connected network, offering a full portfolio view on public testnets and a functional, educational fallback on local development networks. |
+| &nbsp;&nbsp;&nbsp;↳ Multi-Asset Portfolio | **API Integration & Data Handling:** A wallet dashboard that integrates with the **Etherscan API** using a **resilient, throttled API client**. It discovers and displays a complete portfolio of ETH, ERC20, **ERC-721, and ERC-1155** assets. |
+| &nbsp;&nbsp;&nbsp;↳ Network-Aware UI | **Robust User Experience:** The frontend intelligently adapts its features based on the connected network, offering a full portfolio view on public testnets and a functional, educational fallback on local development networks. |
 | **DevOps & Tooling (Hardhat)** | **Professional Development Environment:** Mastery of the industry-standard toolchain for Ethereum development. |
-| &nbsp;&nbsp;&nbsp;↳ **Advanced Scripting** | **Automation & Tooling:** A suite of robust scripts for deployment, state management, and end-to-end user journey simulations. |
-| &nbsp;&nbsp;&nbsp;↳ **Network-Aware Deployment** | **Deployment Pipelines:** A single, reliable deployment script that handles both local development (Hardhat) and live testnets (Sepolia), including **automatic Etherscan verification**. |
+| &nbsp;&nbsp;&nbsp;↳ Advanced Scripting | **Automation & Tooling:** A suite of robust scripts for deployment, state management, and end-to-end user journey simulations. |
+| &nbsp;&nbsp;&nbsp;↳ Network-Aware Deployment | **Deployment Pipelines:** A single, reliable deployment script that handles both local development (Hardhat) and live testnets (Sepolia), including **automatic Etherscan verification**. |
 | **Cryptography (From Scratch)** | **First-Principles Understanding:** A low-level `wallet.js` utility that demonstrates a deep understanding of core Ethereum cryptography by manually handling keys, nonces, gas, and raw transaction signing without high-level libraries. |
 
 ---
@@ -33,11 +33,37 @@ This project was built to demonstrate proficiency in a wide range of production-
 
 -   **Fair & Secure Minting:** Employs a commit-reveal scheme with a configurable reveal delay and expiry window to prevent front-running and guarantee a fair minting experience for all participants.
 -   **Gasless User Onboarding & Transactions:** Users can create their own personal smart contract wallet with the gas fee sponsored by a custom-built relayer. Subsequent interactions, like minting, can also be performed gaslessly via meta-transactions.
--   **Multi-Asset Portfolio Dashboard:** A feature-rich "My Wallet" page that acts as a true portfolio viewer. On live testnets, it uses the Etherscan API to automatically discover and display the wallet's balance of ETH, all ERC20 tokens, and all NFTs from any collection.
+-   **Multi-Asset Portfolio Dashboard:** A feature-rich "My Wallet" page that acts as a true portfolio viewer. On live testnets, it uses a robust, **rate-limit-aware** Etherscan API integration to automatically discover and display a wallet's balance of ETH, all **ERC20** tokens, and all **ERC-721 & ERC-1155** NFTs from any collection.
 -   **100% On-Chain Generative Art:** NFT artwork is generated and stored directly on the blockchain as an SVG, making the asset entirely self-contained and permanent. The metadata URI is also generated on-chain.
 -   **Gas-Efficient Airdrop System:** Utilizes a Merkle tree to manage the presale/airdrop whitelist, allowing for a virtually unlimited number of whitelisted users while keeping on-chain storage costs minimal.
 -   **Revenue Splitting:** A built-in payment splitter allows minting revenue to be automatically and transparently distributed among multiple project contributors according to predefined shares.
 -   **From-Scratch Cryptography Demo:** Includes a standalone `wallet.js` utility that manually performs all the steps of a raw Ethereum transaction—from key generation to signing and broadcasting—proving a first-principles understanding of the underlying cryptography.
+
+---
+
+## Architectural Highlights
+
+Beyond the core features, this project includes several advanced architectural patterns that demonstrate production-level engineering.
+
+### 1. Resilient API Client (`ethersService.ts`)
+
+The service layer for interacting with external APIs is designed for high reliability, incorporating three key patterns:
+-   **Promise-Based Request Throttling:** A sophisticated, non-blocking request queue serializes all calls to the Etherscan API. This guarantees that the app never exceeds the 5 calls/second rate limit, even under rapid, parallel fetching, thus preventing common API errors.
+-   **Exponential Backoff Retries:** The client will automatically retry failed API requests with an increasing delay, making the application resilient to transient network issues or temporary API downtime.
+-   **Universal Metadata Resolver:** The metadata fetching logic can intelligently parse and retrieve data from any source—fully on-chain `base64` URIs, decentralized `ipfs://` links (via a public gateway), and traditional `https://` URLs. This ensures the portfolio can display any type of NFT.
+
+### 2. Progressive Portfolio Loading (`WalletView.tsx` & `NFTGallery.tsx`)
+
+To ensure a fast and responsive user experience, the "My Wallet" page does not wait for all data to load before rendering.
+-   **Immediate UI with Placeholders:** The NFT gallery renders instantly with loading placeholders for the entire collection.
+-   **Staggered Data Fetching:** The app first fetches and displays the more common ERC-721 NFTs. While the user is viewing them, it fetches the ERC-1155 tokens in the background and seamlessly adds them to the gallery.
+-   **Lazy-Loading Images:** Each NFT card is a self-contained component that fetches its own metadata (name and image) individually. This prevents a single slow-loading NFT from blocking the entire gallery.
+
+### 3. Production-Ready Relayer (`relayer/server.js`)
+
+The meta-transaction relayer is built with more than just basic functionality.
+-   **Robust Input Validation:** It rigorously validates all incoming API requests to prevent malformed data from causing errors.
+-   **Enhanced Error Handling:** The relayer can distinguish between different failure modes. It can identify on-chain contract reverts (user errors) and infrastructure problems (like the relayer being out of funds) and return clear, actionable error messages to the frontend.
 
 ---
 
@@ -198,14 +224,15 @@ The user journeys are identical to the local versions, with a few key difference
 | `npm run sim:public` | **Simulation:** Runs an automated, end-to-end test of the public mint flow. |
 | `npm run sim:airdrop` | **Simulation:** Runs an automated, end-to-end test of the airdrop claim flow. |
 | `npm run sim:manual` | **Simulation:** Runs the `wallet.js` demo to mint an NFT from scratch. |
+| `npm run monitor:relayer` | **Utility:** Checks and reports the balance of the relayer wallet to prevent downtime. |
 | `npm test` | Runs the automated gas-comparison test suite. |
 | `npm run generate-keypair` | **Utility:** Generates a new keypair to demonstrate cryptographic principles. |
-| `npm run monitor:relayer` | **Utility:** Checks and reports the balance of the relayer wallet. |
+
 
 ### A Note on the Double Dash (`--`) Syntax
 
 When running some scripts for a specific network, you will see a double dash (`--`) in the command, like this:
-`npm run sale:public -- --network sepolia`
+`npm run sale:public -- --network sepolia` , if it's on hardhat , ignore this part. *Currently our code only configured for Hardhat and Sepolia.
 
 **The `--` is a special separator.** It tells `npm` to stop parsing arguments for itself and to pass everything that comes after it directly to the underlying script. In this case, it ensures that `--network sepolia` is correctly passed to Hardhat, allowing our utility scripts to work on any network.
 
