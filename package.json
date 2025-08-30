@@ -1,0 +1,63 @@
+{
+  "name": "advanced-nft-portfolio",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "description": "A portfolio project demonstrating advanced Solidity and blockchain concepts with a feature-rich minting interface.",
+  "scripts": {
+    "test": "hardhat test",
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/0_deploy.js --network localhost",
+    "deploy:sepolia": "hardhat run scripts/0_deploy.js --network sepolia",
+    "start:relayer": "node relayer/server.js",
+    "monitor:relayer": "hardhat run scripts/monitorRelayer.js --network sepolia",
+    "sale:public": "hardhat set-sale-state public --network localhost",
+    "sale:public:sepolia": "hardhat set-sale-state public --network sepolia",
+    "sale:airdrop": "hardhat set-sale-state presale --network localhost",
+    "sale:airdrop:sepolia": "hardhat set-sale-state presale --network sepolia",
+    "sale:closed": "hardhat set-sale-state closed --network localhost",
+    "sale:closed:sepolia": "hardhat set-sale-state closed --network sepolia",
+    "sim:public": "hardhat run scripts/2_run_public_sale_simulation.js --network localhost",
+    "sim:public:sepolia": "hardhat run scripts/2_run_public_sale_simulation.js --network sepolia",
+    "sim:airdrop": "hardhat run scripts/1_run_airdrop_simulation.js --network localhost",
+    "sim:airdrop:sepolia": "hardhat run scripts/1_run_airdrop_simulation.js --network sepolia",
+    "sim:manual": "hardhat run scripts/6_run_manual_wallet_mint.js --network localhost",
+    "sim:manual:sepolia": "hardhat run scripts/6_run_manual_wallet_mint.js --network sepolia",
+    "generate-keypair": "node scripts/generate-keypair.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "nft",
+    "solidity",
+    "hardhat",
+    "react",
+    "ethers",
+    "meta-transactions",
+    "smart-wallet"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "hardhat": "^2.22.5",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2",
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "elliptic": "^6.5.5",
+    "ethers": "^6.13.1",
+    "express": "^4.19.2",
+    "js-sha3": "^0.9.3",
+    "merkletreejs": "^0.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}

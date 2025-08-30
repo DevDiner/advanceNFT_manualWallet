@@ -1,4 +1,5 @@
 
+
 # Advanced Full-Stack NFT Project + Built From-Scratch Wallet Integration
 
 This is a comprehensive, full-stack NFT project designed to serve as a professional portfolio piece. It demonstrates a deep understanding of advanced blockchain concepts, secure smart contract development, and modern dApp architecture, including a gasless experience via a custom meta-transaction relayer.
@@ -131,12 +132,12 @@ Open four separate terminal windows in your project directory.
 
 #### 1C: Workflow 1 - Standard Minting (User Pays Gas)
 
-1.  **Set Sale State:** In a **new terminal**, use the utility command:
+1.  **Set Sale State:** In a **new terminal**, use the utility command. This script is configured to automatically target your running `localhost` node.
     ```bash
     npm run sale:public
     ```
 2.  **Connect & Mint:**
-    *   Go to the dApp website and refresh. The status should be "Public Sale Active".
+    *   Go to the dApp website and refresh (or click the new refresh button). The status should be "Public Sale Active".
     *   Click **"Connect Wallet"**.
     *   On the "Minter" page, click **"Generate Secure Secret"**.
     *   Click the **`Commit with MetaMask (0.01 ETH)`** button and **Confirm** in MetaMask.
@@ -197,17 +198,28 @@ This uses a real public testnet. Transactions are permanent and require real tes
 
 The user journeys are identical to the local versions, with a few key differences:
 
-*   **Setting Sale State:** To set the sale state on Sepolia, you must pass the network flag through the npm command. See the disclaimer below.
+*   **Setting Sale State:** To set the sale state on Sepolia, use the new, dedicated scripts.
     ```bash
-    npm run sale:public -- --network sepolia
+    npm run sale:public:sepolia
     ```
 *   **Transaction Speed:** Transactions will take 15-30 seconds to confirm.
 *   **Portfolio View:** On the "My Wallet" page, the dashboard will now use the Etherscan API to discover and display **all ERC20 tokens and NFTs** your smart wallet owns.
 *   **Manual Wallet Script:** To run the `wallet.js` demo on Sepolia:
     ```bash
-    npx hardhat run scripts/6_run_manual_wallet_mint.js --network sepolia
+    npm run sim:manual:sepolia
     ```
 *   **Verification:** You can track all your transactions and view your verified contracts on [Sepolia Etherscan](https://sepolia.etherscan.io/).
+
+---
+
+### Developer Note: `localhost` vs `hardhat` Network
+
+It is critical to understand the difference between Hardhat's two local network options to avoid state synchronization issues:
+
+-   `localhost`: This configuration tells Hardhat to connect to an **external, persistent blockchain node** that you run in a separate terminal with `npx hardhat node`. All scripts using `--network localhost` will interact with this single, shared state. **This is the correct network for local dApp development.**
+-   `hardhat`: This is an **in-process, temporary network** that Hardhat creates in memory *for the duration of a single script* and then destroys. Every script run with `--network hardhat` (or no network flag) gets a fresh, empty blockchain.
+
+**Rule of Thumb:** When interacting with your dApp frontend, always run your Hardhat scripts and tasks against the `localhost` network to ensure they are targeting the same blockchain state. To make this easier, the `npm` scripts in this project now default to `--network localhost`.
 
 ---
 
@@ -215,26 +227,24 @@ The user journeys are identical to the local versions, with a few key difference
 
 | Command | Description |
 | :--- | :--- |
-| `npm run deploy` | Deploys contracts to the local Hardhat network. |
+| `npm run deploy` | Deploys contracts to the `localhost` network (your running Hardhat node). |
 | `npm run deploy:sepolia` | Deploys contracts to the Sepolia testnet and verifies them on Etherscan. |
 | `npm run start:relayer` | Starts the backend meta-transaction relayer server. |
-| `npm run sale:public` | **Utility:** Sets the NFT contract sale state to `PublicSale`. |
-| `npm run sale:presale` | **Utility:** Sets the NFT contract sale state to `Presale` (Airdrop). |
-| `npm run sale:closed` | **Utility:** Sets the NFT contract sale state to `Closed`. |
-| `npm run sim:public` | **Simulation:** Runs an automated, end-to-end test of the public mint flow. |
-| `npm run sim:airdrop` | **Simulation:** Runs an automated, end-to-end test of the airdrop claim flow. |
-| `npm run sim:manual` | **Simulation:** Runs the `wallet.js` demo to mint an NFT from scratch. |
+| `npm run sale:public` | **Utility:** Sets the NFT contract sale state to `PublicSale` on `localhost`. |
+| `npm run sale:public:sepolia` | **Utility:** Sets the NFT contract sale state to `PublicSale` on `sepolia`. |
+| `npm run sale:presale` | **Utility:** Sets the NFT contract sale state to `Presale` on `localhost`. |
+| `npm run sale:presale:sepolia` | **Utility:** Sets the NFT contract sale state to `Presale` on `sepolia`. |
+| `npm run sale:closed` | **Utility:** Sets the NFT contract sale state to `Closed` on `localhost`. |
+| `npm run sale:closed:sepolia` | **Utility:** Sets the NFT contract sale state to `Closed` on `sepolia`. |
+| `npm run sim:public` | **Simulation:** Runs an automated, end-to-end test of the public mint flow on `localhost`. |
+| `npm run sim:public:sepolia` | **Simulation:** Runs an automated, end-to-end test of the public mint flow on `sepolia`. |
+| `npm run sim:airdrop` | **Simulation:** Runs an automated, end-to-end test of the airdrop claim flow on `localhost`. |
+| `npm run sim:airdrop:sepolia` | **Simulation:** Runs an automated, end-to-end test of the airdrop claim flow on `sepolia`. |
+| `npm run sim:manual` | **Simulation:** Runs the `wallet.js` demo to mint an NFT from scratch on `localhost`. |
+| `npm run sim:manual:sepolia` | **Simulation:** Runs the `wallet.js` demo to mint an NFT from scratch on `sepolia`. |
 | `npm run monitor:relayer` | **Utility:** Checks and reports the balance of the relayer wallet to prevent downtime. |
-| `npm test` | Runs the automated gas-comparison test suite. |
+| `npm run test` | Runs the automated gas-comparison test suite. |
 | `npm run generate-keypair` | **Utility:** Generates a new keypair to demonstrate cryptographic principles. |
-
-
-### A Note on the Double Dash (`--`) Syntax
-
-When running some scripts for a specific network, you will see a double dash (`--`) in the command, like this:
-`npm run sale:public -- --network sepolia` , if it's on hardhat , ignore this part. *Currently our code only configured for Hardhat and Sepolia.
-
-**The `--` is a special separator.** It tells `npm` to stop parsing arguments for itself and to pass everything that comes after it directly to the underlying script. In this case, it ensures that `--network sepolia` is correctly passed to Hardhat, allowing our utility scripts to work on any network.
 
 ---
 

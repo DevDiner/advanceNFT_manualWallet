@@ -1,0 +1,10 @@
+{
+  "rewrites": [{ "source": "/relay", "destination": "/api/relay" }],
+  "functions": {
+    "api/relay.js": {
+      "runtime": "nodejs20.x",
+      "memory": 512,
+      "maxDuration": 10
+    }
+  }
+}
