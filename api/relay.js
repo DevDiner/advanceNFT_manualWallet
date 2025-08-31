@@ -1,14 +1,24 @@
 // api/relay.js
-const express = require("express");
-const cors = require("cors");
 const { ethers } = require("ethers");
 const { setup, handleTransactionError } = require("./_common");
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+module.exports = async (req, res) => {
+  // Set CORS headers to allow requests from any origin
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-app.post("*", async (req, res) => {
+  // Handle pre-flight OPTIONS request for CORS
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  // Ensure only POST requests are processed
+  if (req.method !== "POST") {
+    res.setHeader("Allow", ["POST"]);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+
   try {
     const { simpleWalletAbi, relayerWallet } = await setup();
     const { from, to, value, data, signature, smartWalletAddress } = req.body;
@@ -60,6 +70,4 @@ app.post("*", async (req, res) => {
   } catch (error) {
     handleTransactionError(error, res);
   }
-});
-
-module.exports = app;
+};
