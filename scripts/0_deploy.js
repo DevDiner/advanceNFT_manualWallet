@@ -111,6 +111,25 @@ async function main() {
   );
   console.log(`✅ Deployed addresses saved to ${deployedAddressesPath}.`);
 
+  // 4.5 Save ABIs for serverless functions
+  const factoryArtifact = await hre.artifacts.readArtifact(
+    "SimpleWalletFactory"
+  );
+  const walletArtifact = await hre.artifacts.readArtifact("SimpleWallet");
+  const apiArtifactsPath = path.join(__dirname, "..", "api-artifacts.json");
+  fs.writeFileSync(
+    apiArtifactsPath,
+    JSON.stringify(
+      {
+        factoryAbi: factoryArtifact.abi,
+        walletAbi: walletArtifact.abi,
+      },
+      null,
+      2
+    )
+  );
+  console.log(`✅ API artifacts (ABIs) saved to ${apiArtifactsPath}.`);
+
   // 5. Frontend Environment Configuration
   const envLocalPath = path.join(__dirname, "..", ".env.local");
   const networkName =

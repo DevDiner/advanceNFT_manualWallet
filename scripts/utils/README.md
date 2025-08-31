@@ -81,7 +81,7 @@ This is the ideal environment for rapid development. Transactions are instant an
     ```bash
     npm run deploy
     ```
-    **Action:** This creates `deployed-addresses.json`, `public/merkle-proofs.json`, and the `.env.local` file for the frontend.
+    **Action:** This creates `deployed-addresses.json`, `public/merkle-proofs.json`, `api-artifacts.json`, and the `.env.local` file for the frontend.
 
 3.  **Terminal 3: Start Frontend + Relayer (Vercel Dev Server)**
     This single command starts a local server that perfectly simulates the Vercel environment, running both the Vite frontend and the serverless API functions together.
@@ -142,7 +142,7 @@ Follow these steps to deploy the entire full-stack application (frontend dApp an
 
 ### Step 1: Deploy Contracts & Generate Local Files
 
-First, you need to deploy your smart contracts to Sepolia. This action also generates the critical `merkle-proofs.json` file that the frontend needs.
+First, you need to deploy your smart contracts to Sepolia. This action also generates the critical files that the frontend and backend need.
 
 1.  **Fund Your Wallet:** Ensure the wallet corresponding to your `PRIVATE_KEY` in `.env` has Sepolia ETH to pay for the contract deployment gas fees.
 2.  **Run the Sepolia Deployment Script:**
@@ -151,20 +151,21 @@ First, you need to deploy your smart contracts to Sepolia. This action also gene
     ```
     **What this does:**
     *   Deploys your `AdvancedNFT` and `SimpleWalletFactory` contracts to the Sepolia network.
-    *   Generates the `public/merkle-proofs.json` file based on your whitelist addresses.
-    *   Creates/updates the `.env.local` file with the new Sepolia contract addresses.
+    *   Generates `public/merkle-proofs.json` for the airdrop.
+    *   Generates `deployed-addresses.json` and `api-artifacts.json` for the backend relayer.
+    *   Creates/updates the `.env.local` file with the new Sepolia contract addresses for the frontend.
 
-### Step 2: Commit Static Assets to GitHub
+### Step 2: Commit Deployment Artifacts to GitHub
 
-The Vercel build process is clean; it only has access to files you've committed to your repository. The `merkle-proofs.json` file is now a required static asset for your application.
+The Vercel build process is clean; it only has access to files you've committed to your repository. The deployment script generates critical files that both the frontend and backend need to function.
 
-1.  **Add the file to Git:**
+1.  **Add the files to Git:**
     ```bash
-    git add public/merkle-proofs.json
+    git add public/merkle-proofs.json deployed-addresses.json api-artifacts.json
     ```
 2.  **Commit and Push:**
     ```bash
-    git commit -m "feat: Add Merkle proofs for Sepolia deployment"
+    git commit -m "feat: Add artifacts for Sepolia deployment"
     git push
     ```
 

@@ -48,28 +48,32 @@ async function setup() {
 
   // On Vercel, the CWD is the project root, so paths are simpler.
   const addressesPath = path.resolve("./deployed-addresses.json");
-  const factoryArtifactPath = path.resolve(
-    "./artifacts/contracts/SimpleWalletFactory.sol/SimpleWalletFactory.json"
-  );
-  const walletArtifactPath = path.resolve(
-    "./artifacts/contracts/SimpleWallet.sol/SimpleWallet.json"
-  );
+  const apiArtifactsPath = path.resolve("./api-artifacts.json");
 
-  if (
-    !fs.existsSync(addressesPath) ||
-    !fs.existsSync(factoryArtifactPath) ||
-    !fs.existsSync(walletArtifactPath)
-  ) {
+  if (!fs.existsSync(addressesPath) || !fs.existsSync(apiArtifactsPath)) {
     throw new Error(
-      "Contract addresses or artifacts not found. Make sure contracts are compiled and deployed."
+      "Deployment artifacts (addresses or ABIs) not found. Run the deployment script and commit the generated files."
     );
   }
 
   addresses = JSON.parse(fs.readFileSync(addressesPath, "utf8"));
-  walletFactoryAbi = JSON.parse(
-    fs.readFileSync(factoryArtifactPath, "utf8")
-  ).abi;
-  simpleWalletAbi = JSON.parse(fs.readFileSync(walletArtifactPath, "utf8")).abi;
+  const { factoryAbi, walletAbi } = JSON.parse(
+    fs.readFileSync(apiArtifactsPath, "utf8")
+  );
+
+  if (
+    !factoryAbi ||
+    factoryAbi.length === 0 ||
+    !walletAbi ||
+    walletAbi.length === 0
+  ) {
+    throw new Error(
+      "ABIs in api-artifacts.json are missing or empty. Run the deployment script to generate them."
+    );
+  }
+
+  walletFactoryAbi = factoryAbi;
+  simpleWalletAbi = walletAbi;
 
   provider = new ethers.JsonRpcProvider(RPC_URL);
   relayerWallet = new ethers.Wallet(RELAYER_PRIVATE_KEY, provider);
