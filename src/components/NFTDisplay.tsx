@@ -80,7 +80,8 @@ const NFTDisplay: React.FC<NFTDisplayProps> = ({ mintedCount, maxSupply, saleSta
                                 stroke="currentColor" 
                                 className={`w-4 h-4 text-gray-500 group-hover:text-white transition-all duration-300 ${isRefreshing ? 'animate-spin' : 'group-hover:-rotate-180'}`}
                             >
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001a10.5 10.5 0 01-1.882 5.857l-1.473-1.473a8.25 8.25 0 00-3.321-3.321l-1.473-1.473A10.5 10.5 0 0112 4.5v2.25m8.25 3.375v2.25a8.25 8.25 0 01-16.5 0v-2.25a8.25 8.25 0 0116.5 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" />
                             </svg>
                         </button>
                     </div>
