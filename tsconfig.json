@@ -8,8 +8,9 @@
       "allowSyntheticDefaultImports": true,
       "strict": true,
       "skipLibCheck": true,
+      "jsx": "react-jsx",
       "types": ["vite/client"]
     },
-    "include": ["src", "components", "scripts", "api", "env.d.ts", "vite-env.d.ts"]
+    "include": ["src", "components", "scripts", "api", "vite-env.d.ts"]
   }
   

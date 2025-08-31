@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { getContractWithSigner, getContract, getProvider, getReadOnlyProvider } from '../services/ethersService';
@@ -9,13 +10,11 @@ import { SIMPLE_WALLET_ABI } from '../constants';
 import axios from 'axios';
 import { MintingInterfaceProps } from '../types';
 import Alert from './shared/Alert';
-import merkleData from '../merkle-proofs.json';
 
 interface MerkleProofData {
     root: string;
     claims: { [address: string]: { index: number; proof: string[] } };
 }
-const typedMerkleData: MerkleProofData = merkleData as any;
 
 type MintingStatus = 'idle' | 'loading' | 'committing' | 'revealing' | 'cancelling' | 'committed' | 'stuck' | 'success' | 'error';
 
@@ -77,6 +76,8 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalle
     const [merkleIndex, setMerkleIndex] = useState<number | null>(null);
     const [isWhitelisted, setIsWhitelisted] = useState<boolean>(!isAirdrop);
     const [smartWalletBalance, setSmartWalletBalance] = useState<bigint | null>(null);
+    const [typedMerkleData, setTypedMerkleData] = useState<MerkleProofData | null>(null);
+    const [isMerkleDataLoading, setIsMerkleDataLoading] = useState(isAirdrop);
 
     const storageKey = `commitData-${config.contractAddress}-${account}`;
 
@@ -121,6 +122,36 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalle
 
         setMintingState({ status: 'error', message: displayError, txHash: null });
     }, []);
+
+    useEffect(() => {
+        if (!isAirdrop) return;
+
+        let isMounted = true;
+        const fetchMerkleData = async () => {
+            setIsMerkleDataLoading(true);
+            try {
+                const response = await fetch('/merkle-proofs.json', { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                if (isMounted) {
+                    setTypedMerkleData(data);
+                }
+            } catch (error: any) {
+                console.error("Failed to load merkle-proofs.json:", error);
+                if (isMounted) {
+                    setTypedMerkleData(null);
+                    handleError(error, "Could not load the whitelist. Please try refreshing the page.");
+                }
+            } finally {
+                if (isMounted) {
+                    setIsMerkleDataLoading(false);
+                }
+            }
+        };
+
+        fetchMerkleData();
+        return () => { isMounted = false; };
+    }, [isAirdrop, handleError]);
 
 
     const checkCommitStatus = useCallback(async () => {
@@ -206,27 +237,24 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalle
     useEffect(() => { estimateGas(); }, [estimateGas]);
 
     useEffect(() => {
-        if (isAirdrop && account) {
-            // FIX: Read from the new, more robust `claims` object structure.
+        if (isAirdrop && account && typedMerkleData) {
             const claimsMap = typedMerkleData.claims;
             const lowercasedAccount = account.toLowerCase();
             
-            // FIX: Find the user's claim data case-insensitively.
             const userAddressKey = Object.keys(claimsMap).find(addr => addr.toLowerCase() === lowercasedAccount);
             
             if (userAddressKey) {
                 const claim = claimsMap[userAddressKey];
                 setIsWhitelisted(true);
-                // FIX: Set the correct index and proof from the file, avoiding fragile lookups.
                 setMerkleProof(claim.proof);
                 setMerkleIndex(claim.index);
             } else {
                 setIsWhitelisted(false);
             }
         } else {
-            setIsWhitelisted(true);
+            setIsWhitelisted(!isAirdrop);
         }
-    }, [account, isAirdrop]);
+    }, [account, isAirdrop, typedMerkleData]);
 
     const generateSecret = () => setSecret(ethers.hexlify(ethers.randomBytes(32)));
     
@@ -346,6 +374,10 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalle
             return <Alert type="info" message={message || "Loading..."} />;
         }
         return null;
+    }
+
+    if (isAirdrop && isMerkleDataLoading) {
+        return <Alert type="info" message="Verifying whitelist status..." />;
     }
 
     if (!isWhitelisted) {

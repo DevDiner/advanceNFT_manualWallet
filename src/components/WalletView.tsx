@@ -68,14 +68,13 @@ const WalletView: React.FC<WalletViewProps> = ({ account, smartWalletAddress }) 
             })
             .finally(() => setIsLoading(prev => ({ ...prev, tokens: false })));
 
-        // Fetch NFTs progressively.
+        // Fetch all NFTs in parallel for efficiency.
         try {
-            const nfts721 = await fetchErc721Nfts(displayAddress);
-            setNfts(nfts721);
-
-            const nfts1155 = await fetchErc1155Nfts(displayAddress);
-            // Combine without causing a race condition on state.
-            setNfts(prevNfts => [...prevNfts, ...nfts1155]);
+            const [nfts721, nfts1155] = await Promise.all([
+                fetchErc721Nfts(displayAddress),
+                fetchErc1155Nfts(displayAddress)
+            ]);
+            setNfts([...nfts721, ...nfts1155]);
         } catch (e: any) {
             console.error("Failed to load NFT portfolio from Etherscan API:", e.message);
             setError(e.message || "An unknown error occurred while fetching NFT portfolio.");

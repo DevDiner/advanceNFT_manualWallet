@@ -29,5 +29,5 @@ dist-ssr
 #secret
 .env
 .env.local
-merkle-proofs.json
+# merkle-proofs.json
 .vercel

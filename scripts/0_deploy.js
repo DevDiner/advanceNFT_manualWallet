@@ -69,7 +69,11 @@ async function main() {
   const whitelistAddresses = [deployer.address, user.address];
   const { root, claims } = buildMerkleTree(whitelistAddresses);
 
-  const proofsPath = path.join(__dirname, "..", "src", "merkle-proofs.json");
+  const publicDir = path.join(__dirname, "..", "public");
+  if (!fs.existsSync(publicDir)) {
+    fs.mkdirSync(publicDir, { recursive: true });
+  }
+  const proofsPath = path.join(publicDir, "merkle-proofs.json");
   fs.writeFileSync(proofsPath, JSON.stringify({ root, claims }, null, 2));
   console.log(`Merkle proofs saved to ${proofsPath}`);
   console.log("Merkle Root:", root);

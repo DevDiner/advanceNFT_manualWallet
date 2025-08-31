@@ -72,7 +72,7 @@ async function pickSigners() {
 function loadProofForUser(userAddr) {
   const data = JSON.parse(
     fs.readFileSync(
-      path.join(__dirname, "..", "src", "merkle-proofs.json"),
+      path.join(__dirname, "..", "public", "merkle-proofs.json"),
       "utf8"
     )
   );
