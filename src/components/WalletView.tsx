@@ -56,6 +56,15 @@ const WalletView: React.FC<WalletViewProps> = ({ account, smartWalletAddress }) 
             }
             return;
         }
+
+        // --- BUG FIX ---
+        // On live networks, explicitly check for the Etherscan API key before fetching.
+        // This provides a clear error message instead of letting the ethersService throw a generic one.
+        if (!config.etherscanApiKey) {
+            setError("The Etherscan API key has not been configured for this environment. Full portfolio discovery is unavailable.");
+            setIsLoading({ tokens: false, nfts: false });
+            return;
+        }
         
         // LIVE NETWORKS (Sepolia, etc.): Use the Etherscan API for full discovery.
         

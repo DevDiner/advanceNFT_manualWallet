@@ -62,18 +62,31 @@ const NFTDisplay: React.FC<NFTDisplayProps> = ({ mintedCount, maxSupply, saleSta
     
     return (
         <>
-            <Card>
+            <Card className="relative">
                 <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <span className="text-gray-400">Status</span>
-                        <button onClick={handleRefresh} className="p-1.5 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500" aria-label="Refresh Status">
-                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}>
-                             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001a10.5 10.5 0 01-10.5 10.5c-5.798 0-10.5-4.702-10.5-10.5s4.702-10.5 10.5-10.5V6.75a8.25 8.25 0 00-8.25 8.25c0 4.556 3.694 8.25 8.25 8.25s8.25-3.694 8.25-8.25V9.348z" />
-                           </svg>
+                    <div className="flex items-center gap-2 text-gray-400">
+                        <span>Status</span>
+                        <button 
+                            onClick={handleRefresh} 
+                            disabled={isRefreshing}
+                            className="group p-1 rounded-full hover:bg-gray-700 transition-colors disabled:opacity-50" 
+                            aria-label="Refresh mint status"
+                        >
+                            <svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                strokeWidth={2}
+                                stroke="currentColor" 
+                                className={`w-4 h-4 text-gray-500 group-hover:text-white transition-all duration-300 ${isRefreshing ? 'animate-spin' : 'group-hover:-rotate-180'}`}
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001a10.5 10.5 0 01-1.882 5.857l-1.473-1.473a8.25 8.25 0 00-3.321-3.321l-1.473-1.473A10.5 10.5 0 0112 4.5v2.25m8.25 3.375v2.25a8.25 8.25 0 01-16.5 0v-2.25a8.25 8.25 0 0116.5 0z" />
+                            </svg>
                         </button>
                     </div>
                     <span className={`font-bold text-lg ${saleStatus.color}`}>{saleStatus.text}</span>
                 </div>
+
                 {saleState === SaleState.PublicSale && (
                      <div className="flex justify-between items-center">
                         <span className="text-gray-400">Price</span>
