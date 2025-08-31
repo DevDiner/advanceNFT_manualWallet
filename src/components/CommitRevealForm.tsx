@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { getContractWithSigner, getContract, getProvider, getReadOnlyProvider } from '../services/ethersService';
@@ -296,7 +297,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalle
                 const message = { from: account, nonce: nonce, to: config.contractAddress, value: ethers.parseEther(mintPrice), data: calldata };
                 const signature = await signer.signTypedData(domain, types, message);
                 const payload = { ...message, nonce: message.nonce.toString(), value: message.value.toString(), signature, smartWalletAddress };
-                const response = await axios.post('/api/relay', payload);
+                const response = await axios.post('/relay', payload);
                 finalTxHash = response.data.txHash;
             } else {
                 const contract = await getContractWithSigner();
@@ -330,7 +331,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalle
                 const message = { from: account, nonce: nonce, to: config.contractAddress, value: 0, data: calldata };
                 const signature = await signer.signTypedData(domain, types, message);
                 const payload = { ...message, nonce: message.nonce.toString(), value: '0', signature, smartWalletAddress };
-                const response = await axios.post('/api/relay', payload);
+                const response = await axios.post('/relay', payload);
                 finalTxHash = response.data.txHash;
             } else {
                 const contract = await getContractWithSigner();
