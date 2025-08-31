@@ -7,7 +7,7 @@ import deployedAddresses from '../deployed-addresses.json';
 interface NetworkConfig {
     chainId: number;
     networkName: string;
-    rpcUrl: string;
+    rpcUrl?: string; // Made optional to handle missing env var gracefully
     etherscanUrl: string | null;
     etherscanApiUrl: string | null;
     etherscanApiKey: string | null;
@@ -31,7 +31,9 @@ const networkConfigs: { [key: string]: NetworkConfig } = {
     sepolia: {
         chainId: 11155111,
         networkName: 'Sepolia',
-        rpcUrl: env.VITE_SEPOLIA_RPC_URL || "https://rpc.sepolia.org",
+        // FIX: Removed the fallback to the public RPC URL. The app now REQUIRES this env var.
+        // This prevents the dApp from trying to use an endpoint that causes CORS errors.
+        rpcUrl: env.VITE_SEPOLIA_RPC_URL,
         etherscanUrl: 'https://sepolia.etherscan.io',
         etherscanApiUrl: 'https://api.etherscan.io/v2/api',
         etherscanApiKey: env.VITE_ETHERSCAN_API_KEY || null,
@@ -40,7 +42,7 @@ const networkConfigs: { [key: string]: NetworkConfig } = {
     mainnet: {
         chainId: 1,
         networkName: 'Ethereum Mainnet',
-        rpcUrl: env.VITE_MAINNET_RPC_URL || "https://mainnet.infura.io/v3/your-infura-id",
+        rpcUrl: env.VITE_MAINNET_RPC_URL,
         etherscanUrl: 'https://etherscan.io',
         etherscanApiUrl: 'https://api.etherscan.io/v2/api',
         etherscanApiKey: env.VITE_ETHERSCAN_API_KEY || null,
@@ -48,17 +50,6 @@ const networkConfigs: { [key: string]: NetworkConfig } = {
 };
 
 const activeNetworkConfig = networkConfigs[networkName] || networkConfigs.localhost;
-
-// Validate essential configuration
-if (networkName === 'sepolia' && !env.VITE_SEPOLIA_RPC_URL) {
-    console.error("VITE_SEPOLIA_RPC_URL is not defined. The app may not connect to Sepolia.");
-}
-if ((networkName === 'sepolia' || networkName === 'mainnet') && !env.VITE_RELAYER_URL) {
-    console.warn(
-        "Relayer URL is not configured. Gasless transactions will fail. " +
-        "Ensure the relayer URL for the live network is set in your .env file before deploying."
-    );
-}
 
 const config = {
     ...activeNetworkConfig,
@@ -68,5 +59,23 @@ const config = {
     isLocalhost: networkName === 'localhost',
     activeNetworkName: networkName,
 };
+
+/**
+ * Validates the application's configuration on startup.
+ * Throws a user-friendly error if a required environment variable is missing for the
+ * current network, preventing cryptic runtime errors like CORS issues.
+ */
+export function validateConfig() {
+    if (config.activeNetworkName === 'sepolia' && !config.rpcUrl) {
+        throw new Error("Configuration Error: The Sepolia RPC URL is missing. Please set VITE_SEPOLIA_RPC_URL in your Vercel project's Environment Variables and re-deploy the application.");
+    }
+    if ((config.activeNetworkName === 'sepolia' || config.activeNetworkName === 'mainnet') && !config.relayerUrl) {
+        console.warn(
+            "Relayer URL is not configured. Gasless transactions will fail. " +
+            "Ensure the relayer URL for the live network is set in your .env file before deploying."
+        );
+    }
+}
+
 
 export default config;

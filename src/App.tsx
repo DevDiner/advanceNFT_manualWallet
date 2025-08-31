@@ -8,7 +8,7 @@ import MintingInterface from './components/MintingInterface';
 import WalletView from './components/WalletView';
 import { SaleState, NftPreview } from './types';
 import { getContract, getReadOnlyProvider, assertContractDeployed, getWalletFactoryContract } from './services/ethersService';
-import config from './config';
+import config, { validateConfig } from './config';
 import Spinner from './components/shared/Spinner';
 import Card from './components/shared/Card';
 import Button from './components/shared/Button';
@@ -164,6 +164,7 @@ const App: React.FC = () => {
         const initialize = async () => {
             setIsInitializing(true);
             try {
+                validateConfig(); // Check for required env vars before doing anything else
                 await assertContractDeployed();
                 await fetchContractData();
 
