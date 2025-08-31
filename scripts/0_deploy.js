@@ -120,28 +120,8 @@ async function main() {
     upsertEnvVar(envLocalPath, "VITE_NFT_ADDRESS", nftAddress);
     upsertEnvVar(envLocalPath, "VITE_FACTORY_ADDRESS", factoryAddress);
 
-    // Auto-populate the relayer URL based on the network
-    if (networkName === "localhost") {
-      upsertEnvVar(envLocalPath, "VITE_RELAYER_URL", "http://localhost:3000");
-    } else {
-      // sepolia
-      // For Sepolia, the relayer must be hosted publicly. Its URL is read from the main .env file.
-      const relayerUrl = process.env.RELAYER_URL_SEPOLIA;
-      if (relayerUrl) {
-        upsertEnvVar(envLocalPath, "VITE_RELAYER_URL", relayerUrl);
-      } else {
-        console.warn(
-          "\n🚨 WARNING: `RELAYER_URL_SEPOLIA` not found in `.env`."
-        );
-        console.warn(
-          "   Gasless transactions on the frontend will fail on Sepolia."
-        );
-        console.warn(
-          "   To fix this, deploy the relayer to a public service and add its URL to your .env file.\n"
-        );
-      }
-
-      // Copy other public variables for Sepolia
+    // For Sepolia, copy public variables needed by the frontend
+    if (networkName === "sepolia") {
       const publicVars = ["SEPOLIA_RPC_URL", "ETHERSCAN_API_KEY"];
       for (const key of publicVars) {
         if (process.env[key]) {

@@ -55,7 +55,6 @@ const config = {
     ...activeNetworkConfig,
     contractAddress: env.VITE_NFT_ADDRESS || deployedAddresses.nft,
     factoryAddress: env.VITE_FACTORY_ADDRESS || deployedAddresses.factory,
-    relayerUrl: env.VITE_RELAYER_URL || '',
     isLocalhost: networkName === 'localhost',
     activeNetworkName: networkName,
 };
@@ -68,12 +67,6 @@ const config = {
 export function validateConfig() {
     if (config.activeNetworkName === 'sepolia' && !config.rpcUrl) {
         throw new Error("Configuration Error: The Sepolia RPC URL is missing. Please set VITE_SEPOLIA_RPC_URL in your Vercel project's Environment Variables and re-deploy the application.");
-    }
-    if ((config.activeNetworkName === 'sepolia' || config.activeNetworkName === 'mainnet') && !config.relayerUrl) {
-        console.warn(
-            "Relayer URL is not configured. Gasless transactions will fail. " +
-            "Ensure the relayer URL for the live network is set in your .env file before deploying."
-        );
     }
 }
 
