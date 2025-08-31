@@ -61,7 +61,6 @@ const findRevertReason = (err: any): string | null => {
     return null;
 };
 
-// FIX: Define CommitRevealFormProps by extending MintingInterfaceProps to resolve missing type error.
 interface CommitRevealFormProps extends MintingInterfaceProps {
     isAirdrop: boolean;
 }
