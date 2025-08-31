@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/deploy-wallet",
+      "destination": "/api/deploy-wallet"
+    },
+    {
+      "source": "/relay",
+      "destination": "/api/relay"
+    },
+    {
       "source": "/((?!api/|assets/).*)",
       "destination": "/"
     }
