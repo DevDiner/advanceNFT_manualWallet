@@ -47,7 +47,7 @@ const RelayerDemo: React.FC<RelayerDemoProps> = ({ account, smartWalletAddress }
                  smartWalletAddress,
             };
 
-            const response = await axios.post(`${config.relayerUrl}/relay`, payload);
+            const response = await axios.post(`${config.relayerUrl}/api/relay`, payload);
             
             setSuccessMessage(`Transaction relayed successfully! This was a gasless transaction sponsored by the relayer.`);
             setTxHash(response.data.txHash);

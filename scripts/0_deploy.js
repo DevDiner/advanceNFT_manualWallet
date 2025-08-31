@@ -122,7 +122,7 @@ async function main() {
 
     // Auto-populate the relayer URL based on the network
     if (networkName === "localhost") {
-      upsertEnvVar(envLocalPath, "VITE_RELAYER_URL", "http://localhost:3001");
+      upsertEnvVar(envLocalPath, "VITE_RELAYER_URL", "http://localhost:3000");
     } else {
       // sepolia
       // For Sepolia, the relayer must be hosted publicly. Its URL is read from the main .env file.

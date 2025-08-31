@@ -41,7 +41,7 @@ async function main() {
   console.log(`User (signs meta-tx): ${user.address}`);
   console.log(`NFT Contract:         ${nftAddress}`);
 
-  const relayerUrl = "http://localhost:3001";
+  const relayerUrl = "http://localhost:3000";
   const factory = await hre.ethers.getContractAt(
     "SimpleWalletFactory",
     factoryAddress

@@ -42,7 +42,7 @@ This project was built to demonstrate proficiency in a wide range of production-
 
 ---
 
-## Comprehensive "How to Run" Guide
+## Comprehensive 'How to Run' Guide
 
 This guide covers every workflow for local development, live testnet interaction, and Vercel deployment.
 
@@ -51,7 +51,7 @@ This guide covers every workflow for local development, live testnet interaction
 1.  **Clone the Repository:**
     ```bash
     git clone <repo-url>
-    cd <your-repo-folder>
+    cd <repo-folder>
     ```
 2.  **Install Dependencies:**
     ```bash
@@ -81,7 +81,7 @@ This is the ideal environment for rapid development. Transactions are instant an
     ```bash
     npm run deploy
     ```
-    **Action:** This creates `deployed-addresses.json`, `merkle-proofs.json`, and the `.env.local` file for the frontend.
+    **Action:** This creates `deployed-addresses.json`, `public/merkle-proofs.json`, and the `.env.local` file for the frontend.
 
 3.  **Terminal 3: Start Frontend + Relayer (Vercel Dev Server)**
     This single command starts a local server that perfectly simulates the Vercel environment, running both the Vite frontend and the serverless API functions together.
@@ -136,96 +136,217 @@ This is the ideal environment for rapid development. Transactions are instant an
 
 ---
 
-### Phase 2: Live Testing on Sepolia
+## The Definitive Vercel Deployment Guide (End-to-End)
 
-This uses a real public testnet. **Before starting this phase, you must complete Phase 3 to get a public relayer URL.**
+Follow these steps to deploy the entire full-stack application (frontend dApp and backend relayer) to a single, live Vercel URL on the Sepolia testnet.
 
-#### 2A: Environment and Deployment
+### Step 1: Deploy Contracts & Generate Local Files
 
-1.  **Configure `.env` for Sepolia:**
-    *   Fill out all the Sepolia-related variables in your `.env` file (RPC URL, private keys, Etherscan key, and the Vercel URL from Phase 3).
-2.  **Fund Your Wallets:** Use a public faucet to get Sepolia ETH for your **Deployer** and **Relayer** wallets.
-3.  **Deploy Contracts to Sepolia:**
+First, you need to deploy your smart contracts to Sepolia. This action also generates the critical `merkle-proofs.json` file that the frontend needs.
+
+1.  **Fund Your Wallet:** Ensure the wallet corresponding to your `PRIVATE_KEY` in `.env` has Sepolia ETH to pay for the contract deployment gas fees.
+2.  **Run the Sepolia Deployment Script:**
     ```bash
     npm run deploy:sepolia
     ```
-4.  **Start Frontend (Locally):**
-    You can test against the live Sepolia contracts using your local Vercel dev server. It will automatically use the Sepolia configuration from `.env.local`.
+    **What this does:**
+    *   Deploys your `AdvancedNFT` and `SimpleWalletFactory` contracts to the Sepolia network.
+    *   Generates the `public/merkle-proofs.json` file based on your whitelist addresses.
+    *   Creates/updates the `.env.local` file with the new Sepolia contract addresses.
+
+### Step 2: Commit Static Assets to GitHub
+
+The Vercel build process is clean; it only has access to files you've committed to your repository. The `merkle-proofs.json` file is now a required static asset for your application.
+
+1.  **Add the file to Git:**
     ```bash
-    npm run dev:vercel
+    git add public/merkle-proofs.json
     ```
-5.  **MetaMask:** Switch your MetaMask network to "Sepolia".
-
-#### 2B: All Workflows on Sepolia
-
-The user journeys are identical to the local versions.
-*   **Setting Sale State:** Use the dedicated Sepolia scripts:
+2.  **Commit and Push:**
     ```bash
-    npm run sale:public:sepolia
+    git commit -m "feat: Add Merkle proofs for Sepolia deployment"
+    git push
     ```
-*   **Transaction Speed:** Transactions will take 15-30 seconds.
-*   **Portfolio View:** The "My Wallet" page will now use the Etherscan API to show **all** your assets.
-*   **Manual Wallet Script:** `npm run sim:manual:sepolia`
 
----
+### Step 3: Link Project and Deploy to Vercel
 
-### Phase 3: Deploying to Vercel (Single Project)
+This step connects your local repository to a Vercel project and performs the initial deployment to get a public URL for your relayer.
 
-This guide covers the modern, unified workflow for deploying your full-stack application (frontend and API) to a single Vercel URL.
+1.  **Install & Login to Vercel CLI:**
+    ```bash
+    npm install -g vercel
+    vercel login
+    ```
+2.  **Link Your Project:** In your project directory, run:
+    ```bash
+    vercel link
+    ```
+    Follow the prompts to create a **new Vercel project**. Vercel will automatically detect the Vite frontend and the serverless API in the `/api` directory.
+3.  **Run the First Preview Deployment:**
+    ```bash
+    npm run deploy:vercel
+    ```
+    This command builds and deploys your project to a unique preview URL. When it's done, **copy the public URL** it gives you (e.g., `https://nft-smart-contract-wallet-git-main-devds-projects-0114b344.vercel.app/`). This is your relayer's public endpoint.
 
-#### 3A: Step 1 - Install Vercel CLI & Link Project
+### Step 4: Configure Environment Variables on Vercel
 
-1.  **Install Vercel CLI:** `npm install -g vercel`
-2.  **Login to Vercel:** `vercel login`
-3.  **Link your local project:** `vercel link`
-    *   Follow the prompts to create a **new Vercel project**. Vercel will automatically detect that you have a Vite frontend and serverless functions in the `/api` directory.
+Your live application needs its secrets to function.
 
-#### 3B: Step 2 - Configure Environment Variables on Vercel
-
-Your serverless API functions need access to your secrets to operate on the Sepolia network.
 1.  Go to your project's dashboard on the Vercel website.
 2.  Navigate to **Settings -> Environment Variables**.
-3.  Add the following variables, copying their values from your local `.env` file.
+3.  Add the following variables, copying their values from your local `.env` file. These are essential for the backend relayer and the frontend application to work correctly.
 
 | Variable Name | Value | Description |
 | :--- | :--- | :--- |
-| `NETWORK` | `sepolia` | Tells the relayer to use the Sepolia RPC. |
-| `SEPOLIA_RPC_URL`| `https://sepolia.infura.io/v3/...` | Your Sepolia RPC URL. |
-| `RELAYER_PRIVATE_KEY`| `0x...` | The private key for your relayer wallet. |
+| `NETWORK` | `sepolia` | **(Backend)** Tells the relayer which network to use. |
+| `SEPOLIA_RPC_URL`| `https://sepolia.infura.io/v3/...` | **(Backend)** Your Sepolia RPC URL for the relayer. |
+| `RELAYER_PRIVATE_KEY`| `0x...` | **(Backend)** The private key for your relayer wallet. **This is highly sensitive.** |
+| `VITE_SEPOLIA_RPC_URL` | `https://sepolia.infura.io/v3/...`| **(Frontend)** The same RPC URL, but prefixed with `VITE_` to expose it to the frontend. |
+| `VITE_ETHERSCAN_API_KEY` | `YourEtherscanApiKey`| **(Frontend)** Your Etherscan API key for the portfolio viewer. |
+| `VITE_RELAYER_URL` | `https://your-project-name-....vercel.app`| **(Frontend)** The public Vercel URL you copied in the previous step. |
 
-#### 3C: Step 3 - The Vercel Deployment Workflow
+### Step 5: Final Production Deployment
 
-Vercel provides three main commands for different environments.
+Now that Vercel has all the required secrets, you must re-deploy your application so they can be included in the build.
 
-1.  **Local Development (`npm run dev:vercel`)**
-    *   **What it does:** Runs the entire Vercel environment (frontend + API) on your local machine.
-    *   **Use it for:** All day-to-day development and testing on the Hardhat network.
-
-2.  **Preview Deployment (`npm run deploy:vercel`)**
-    *   **What it does:** Deploys your current code to a unique, temporary URL (e.g., `my-project-git-my-branch-hash.vercel.app`).
-    *   **Use it for:** Testing your changes on a live network like Sepolia before merging them. Share this URL with teammates for review.
-
-3.  **Production Deployment (`npm run deploy:vercel:prod`)**
-    *   **What it does:** Deploys your code to the main, public URL for your project.
-    *   **Use it for:** The final release when your changes are complete and tested.
-
-**Action:** Run a preview deployment to get your initial relayer URL:
-```bash
-npm run deploy:vercel
-```
-Vercel will give you a public URL. **Copy this URL.**
-
-#### 3D: Step 4 - Update Local Config & Re-Deploy Contracts
-
-1.  **Update `.env` file:** Open your local `.env` file and add/update the `RELAYER_URL_SEPOLIA` variable with the URL you just copied.
-    ```
-    RELAYER_URL_SEPOLIA=https-your-project-preview-url.vercel.app
-    ```
-2.  **Re-run the deployment script:** This injects the new URL into the frontend's configuration.
+1.  **Run the Production Deploy Command:**
     ```bash
-    npm run deploy:sepolia
+    npm run deploy:vercel:prod
     ```
-Your dApp is now configured to use your live relayer on the Sepolia network! You can now proceed to **Phase 2**.
+    This triggers a new build and deployment to your main production URL. This final version will have all the environment variables correctly configured.
+
+### Step 6: You're Live!
+
+Congratulations! Your full-stack dApp is now live and fully functional. You can now proceed to the **"Post-Deployment User & Operator Guide"** below to test every feature.
+
+---
+
+## Post-Deployment: A Comprehensive User & Operator Guide
+
+Once your dApp is live on Vercel and your contracts are on the Sepolia testnet, use this guide to test every feature from both an administrative and a user perspective.
+
+### Phase 1: Pre-Flight Checklist (Your Operator Setup)
+
+Before you can test, you need to configure your own tools to interact with your live dApp.
+
+#### **1. Configure MetaMask for Sepolia**
+
+*   **Switch Network:** Open MetaMask and ensure you are connected to the **Sepolia** network.
+*   **Import Owner Account:** This is the most crucial step for administrative tasks.
+    *   In your local `.env` file, find the `PRIVATE_KEY` you used for deployment. This is your **Owner/Deployer** account.
+    *   In MetaMask, click the account icon -> "Import account" and paste this private key. Give it a clear name like `NFT Project Owner`.
+*   **Import User Account:** To simulate a real user, it's best to use a different account.
+    *   Find the `USER_PRIVATE_KEY` in your `.env` file.
+    *   Import this key into MetaMask as well. Name it `Test User EOA`.
+*   **Fund Your Wallets:** Make sure both the `NFT Project Owner` and `Test User EOA` accounts have some Sepolia ETH. If you need more, use a public faucet like [Alchemy's Sepolia Faucet](https://sepoliafaucet.com/).
+
+#### **2. Open Your Live dApp**
+Open the main production Vercel URL for your project.
+
+---
+
+### Phase 2: Administrative Control (Changing the Sale State)
+
+As the contract owner, you control the minting process. This is done from your **local command line**, which sends a transaction to the live Sepolia contract.
+
+1.  **Open a Terminal** in your project directory.
+2.  **Connect as the Owner:** In MetaMask, make sure you are switched to your `NFT Project Owner` account. This is the account that will sign the transaction.
+
+#### **Action: Open the Public Sale**
+
+Run the following command. This tells your Hardhat setup to send a transaction to the live Sepolia contract to change its state.
+
+```bash
+npm run sale:public:sepolia
+```
+
+*   **What's Happening:** Your terminal will show the transaction being sent. This will cost a small amount of Sepolia ETH for gas.
+*   **Verification:** Wait for the transaction to confirm. Then, go to your live Vercel dApp and **refresh the page**. The status on the "Minter" page should now read **"Public Sale Active"**.
+
+You can use the other commands at any time to change the state:
+*   `npm run sale:presale:sepolia` (for Airdrop/Whitelist)
+*   `npm run sale:closed:sepolia` (to pause the mint)
+
+---
+
+### Phase 3: The Full User Experience
+
+Now, let's test every feature from the perspective of a regular user.
+
+#### **User Journey 1: Standard Mint (EOA Pays Gas)**
+
+This tests the core commit-reveal flow.
+
+1.  **Switch to User Account:** In MetaMask, switch to your `Test User EOA` account.
+2.  **Connect to dApp:** On your Vercel site, click **"Connect Wallet"**.
+3.  **Navigate to Minter:** Go to the "Minter" tab. The status should be "Public Sale Active".
+4.  **Commit:**
+    *   Click **"Generate Secure Secret"**.
+    *   Click **`Commit with MetaMask (0.01 ETH)`**.
+    *   MetaMask will pop up, asking you to confirm a transaction that sends 0.01 ETH. **Confirm it**.
+5.  **Wait for Reveal Window:**
+    *   On Sepolia, the reveal delay is a few minutes. The UI will show a "Waiting for Reveal Window" message with the target block number.
+6.  **Reveal & Mint:**
+    *   Once the current block is past the "earliest reveal block," the UI will change to "Ready to Reveal!".
+    *   Click **"Reveal & Mint NFT"**.
+    *   MetaMask will pop up again, this time asking you to confirm a transaction that only costs gas. **Confirm it**.
+7.  **Verification:**
+    *   The **"Last Minted NFT"** preview on the left will update to show your new, unique, on-chain generative art!
+
+#### **User Journey 2: The Gasless Experience (Smart Wallet & Relayer)**
+
+**Step A: Create the Smart Wallet**
+
+1.  **Navigate to "My Wallet":** Click the "My Wallet" tab.
+2.  **Initiate Creation:** Click **"Create My Smart Wallet (Gasless)"**.
+3.  **The Magic:** The relayer will deploy your wallet on Sepolia, sponsoring the gas. After a minute, the UI will update to show your new Smart Wallet dashboard.
+
+**Step B: Fund the Smart Wallet**
+
+1.  **Get the Address:** On the "My Wallet" page, copy the **"Smart Wallet Address"**.
+2.  **Send Funds:** Open MetaMask (using your `Test User EOA`). Send exactly **0.01 Sepolia ETH** to the smart wallet address. The wallet must hold the mint price.
+
+**Step C: Perform the Gasless Mint**
+
+1.  **Navigate to Minter:** Go back to the "Minter" tab.
+2.  **Commit (Gaslessly):**
+    *   Click **"Generate Secure Secret"**.
+    *   Click **"Commit Gaslessly via Smart Wallet"**.
+    *   MetaMask will pop up with a **free Signature Request**. **Sign it**.
+3.  **Wait for Reveal Window:** Wait for the reveal window to open.
+4.  **Reveal (Gaslessly):**
+    *   Click **"Reveal & Mint NFT"**.
+    *   MetaMask will pop up with another **free Signature Request**. **Sign it**.
+5.  **Verification:**
+    *   Navigate back to the **"My Wallet"** page.
+    *   Click the **"NFTs"** tab in the **"Smart Wallet"** view. **Your new NFT will appear in the gallery!**
+
+---
+
+### Phase 4: Operational Maintenance & Troubleshooting
+
+Your dApp is live, but like any service, it needs monitoring.
+
+#### **Checking the Relayer's Balance**
+
+Your relayer pays for gas, so it needs funds. If it runs out, gasless features will fail.
+
+*   **How to Check:** In your local terminal, run the monitor script:
+    ```bash
+    npm run monitor:relayer
+    ```
+*   **What to Do if Low:** If the balance is below the threshold, send more Sepolia ETH to the relayer's address.
+
+#### **Common Deployed App Issues**
+
+*   **Problem:** The "My Wallet" view shows the error `"Etherscan API is not configured for this network."`
+    *   **Cause:** You forgot to add the `VITE_ETHERSCAN_API_KEY` to your Vercel project's environment variables.
+    *   **Solution:** Go to Vercel -> Your Project -> Settings -> Environment Variables. Add the key and its value. You must then **re-deploy the project** for the change to take effect (`npm run deploy:vercel:prod`).
+
+*   **Problem:** Gasless features are failing.
+    *   **Cause 1:** The `VITE_RELAYER_URL` is not set correctly on Vercel.
+    *   **Cause 2:** The relayer wallet is out of Sepolia ETH.
+    *   **Solution:** Verify the environment variable is correct and check the relayer's balance.
 
 ---
 

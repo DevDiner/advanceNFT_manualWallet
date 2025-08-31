@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { getContractWithSigner, getContract, getProvider, getReadOnlyProvider } from '../services/ethersService';
@@ -11,6 +12,8 @@ import axios from 'axios';
 import { MintingInterfaceProps } from '../types';
 import Alert from './shared/Alert';
 
+// NOTE: This is the data structure for the merkle-proofs.json file,
+// which is now loaded at RUNTIME via fetch() to ensure Vercel builds succeed.
 interface MerkleProofData {
     root: string;
     claims: { [address: string]: { index: number; proof: string[] } };
@@ -292,7 +295,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalle
                 const message = { from: account, nonce: nonce, to: config.contractAddress, value: ethers.parseEther(mintPrice), data: calldata };
                 const signature = await signer.signTypedData(domain, types, message);
                 const payload = { ...message, nonce: message.nonce.toString(), value: message.value.toString(), signature, smartWalletAddress };
-                const response = await axios.post(`${config.relayerUrl}/relay`, payload);
+                const response = await axios.post(`${config.relayerUrl}/api/relay`, payload);
                 finalTxHash = response.data.txHash;
             } else {
                 const contract = await getContractWithSigner();
@@ -326,7 +329,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalle
                 const message = { from: account, nonce: nonce, to: config.contractAddress, value: 0, data: calldata };
                 const signature = await signer.signTypedData(domain, types, message);
                 const payload = { ...message, nonce: message.nonce.toString(), value: '0', signature, smartWalletAddress };
-                const response = await axios.post(`${config.relayerUrl}/relay`, payload);
+                const response = await axios.post(`${config.relayerUrl}/api/relay`, payload);
                 finalTxHash = response.data.txHash;
             } else {
                 const contract = await getContractWithSigner();
