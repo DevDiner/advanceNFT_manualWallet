@@ -230,7 +230,7 @@ const App: React.FC = () => {
         setIsDeployingWallet(true);
         setDeployWalletError(null);
         try {
-            const relayerUrl = '/deploy-wallet';
+            const relayerUrl = '/api/deploy-wallet';
             const response = await axios.post(relayerUrl, { owner: account });
             if (response.data.success) {
                 setSmartWalletAddress(response.data.walletAddress);
