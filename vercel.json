@@ -1,16 +1,20 @@
 {
-  "version": 2,
   "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs20.x",
+    "api/deploy-wallet.js": {
       "includeFiles": [
-        "deployed-addresses.json",
-        "api-artifacts.json"
+        "./api-artifacts.json",
+        "./deployed-addresses.json"
+      ]
+    },
+    "api/relay.js": {
+      "includeFiles": [
+        "./api-artifacts.json",
+        "./deployed-addresses.json"
       ]
     }
   },
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/((?!api/|assets/).*)", "destination": "/" }
+    { "source": "/((?!api/).*)", "destination": "/" }
   ]
 }
