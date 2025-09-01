@@ -47,11 +47,10 @@ async function setup() {
   }
 
   // --- ROBUST PATHING FOR VERCEL RUNTIME ---
-  // The serverless function runs from /var/task/api, but the included files are at /var/task.
-  // We must use `__dirname` to build a reliable path up one level to the project root.
-  const rootDir = path.resolve(__dirname, "..");
-  const addressesPath = path.join(rootDir, "deployed-addresses.json");
-  const apiArtifactsPath = path.join(rootDir, "api-artifacts.json");
+  // In the Vercel serverless environment, process.cwd() reliably points to the root
+  // of the deployment package (`/var/task`), where `includeFiles` places our JSON files.
+  const addressesPath = path.join(process.cwd(), "deployed-addresses.json");
+  const apiArtifactsPath = path.join(process.cwd(), "api-artifacts.json");
 
   if (!fs.existsSync(addressesPath) || !fs.existsSync(apiArtifactsPath)) {
     throw new Error(
