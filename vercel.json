@@ -1,4 +1,12 @@
 {
+  "functions": {
+    "api/**/*.js": {
+      "includeFiles": [
+        "deployed-addresses.json",
+        "api-artifacts.json"
+      ]
+    }
+  },
   "trailingSlash": false,
   "rewrites": [
     {
