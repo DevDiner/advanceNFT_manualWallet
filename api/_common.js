@@ -1,20 +1,34 @@
 // api/_common.js
 const { ethers } = require("ethers");
-const fs = require("fs");
-const path = require("path");
+const { existsSync, readFileSync } = require("fs");
+const { join } = require("path");
 
-// --- State Variables ---
-// We cache these values so they don't have to be re-initialized on every
-// single serverless function invocation, which is more efficient.
+// Cached state (persists for the life of the serverless instance)
 let provider, relayerWallet, addresses, walletFactoryAbi, simpleWalletAbi;
 let isInitialized = false;
 
-/**
- * Initializes all the necessary blockchain connections and contract ABIs.
- * This is designed to be called at the start of each serverless function.
- * It uses a simple flag to ensure the setup logic only runs once per "cold start"
- * of the serverless function, improving performance.
- */
+// Helper: try several likely paths for an included file
+function candidates(file) {
+  return [
+    // typical location when included by vercel "includeFiles"
+    join(process.cwd(), file),
+    // parent of this file (api/_common.js -> ..)
+    join(__dirname, "..", file),
+    // same folder as this file (if you move things later)
+    join(__dirname, file),
+  ];
+}
+
+function findFile(file) {
+  for (const p of candidates(file)) {
+    if (existsSync(p)) {
+      console.log(`[common] Using ${file}: ${p}`);
+      return p;
+    }
+  }
+  return null;
+}
+
 async function setup() {
   if (isInitialized) {
     return {
@@ -26,69 +40,72 @@ async function setup() {
     };
   }
 
-  // --- Configuration & Validation ---
-  const network = process.env.NETWORK || "sepolia"; // Default to Sepolia for Vercel
+  // ----- Env & network selection
+  const network = process.env.NETWORK || "sepolia";
   const RPC_URL =
     network === "sepolia"
       ? process.env.SEPOLIA_RPC_URL
       : "http://127.0.0.1:8545";
-
-  if (!RPC_URL) {
-    throw new Error(
-      `RPC URL for ${network} is not configured in environment variables.`
-    );
-  }
+  if (!RPC_URL) throw new Error(`RPC URL for ${network} is not configured.`);
 
   const RELAYER_PRIVATE_KEY = process.env.RELAYER_PRIVATE_KEY;
-  if (!RELAYER_PRIVATE_KEY) {
+  if (!RELAYER_PRIVATE_KEY) throw new Error("RELAYER_PRIVATE_KEY is not set.");
+
+  // ----- Locate bundled JSON artifacts
+  const addressesPath = findFile("deployed-addresses.json");
+  const apiArtifactsPath = findFile("api-artifacts.json");
+  if (!addressesPath || !apiArtifactsPath) {
     throw new Error(
-      "FATAL: RELAYER_PRIVATE_KEY is not set in environment variables."
+      "Deployment artifacts not found. Re-run your deploy script to regenerate " +
+        "deployed-addresses.json and api-artifacts.json, commit them, and redeploy."
     );
   }
 
-  // --- ROBUST PATHING FOR VERCEL RUNTIME ---
-  // In the Vercel serverless environment, process.cwd() reliably points to the root
-  // of the deployment package (`/var/task`), where `includeFiles` places our JSON files.
-  const addressesPath = path.join(process.cwd(), "deployed-addresses.json");
-  const apiArtifactsPath = path.join(process.cwd(), "api-artifacts.json");
-
-  if (!fs.existsSync(addressesPath) || !fs.existsSync(apiArtifactsPath)) {
+  // ----- Parse addresses
+  const addressesJson = readFileSync(addressesPath, "utf8");
+  try {
+    addresses = JSON.parse(addressesJson);
+  } catch {
+    console.error("deployed-addresses.json is malformed:\n", addressesJson);
     throw new Error(
-      "Deployment artifacts (addresses or ABIs) not found. Run the deployment script and commit the generated files."
+      "Server configuration error: deployed-addresses.json is malformed."
     );
   }
 
-  addresses = JSON.parse(fs.readFileSync(addressesPath, "utf8"));
+  // ----- Parse ABIs
+  const artifactsRaw = readFileSync(apiArtifactsPath, "utf8");
+  let artifacts;
+  try {
+    artifacts = JSON.parse(artifactsRaw);
+  } catch {
+    console.error("api-artifacts.json is malformed:\n", artifactsRaw);
+    throw new Error(
+      "Server configuration error: api-artifacts.json is malformed."
+    );
+  }
 
-  // --- Self-Diagnosing ABI Loading ---
-  const apiArtifactsContent = fs.readFileSync(apiArtifactsPath, "utf8");
-  const { factoryAbi, walletAbi } = JSON.parse(apiArtifactsContent);
-
+  const { factoryAbi, walletAbi } = artifacts;
   if (
-    !factoryAbi ||
     !Array.isArray(factoryAbi) ||
     factoryAbi.length === 0 ||
-    !walletAbi ||
     !Array.isArray(walletAbi) ||
     walletAbi.length === 0
   ) {
-    // Log the problematic content for server-side debugging in Vercel.
     console.error(
-      "FATAL: The api-artifacts.json file is empty or malformed. This is likely because an old, empty version was committed to Git."
+      "--- Deployed api-artifacts.json ---\n",
+      artifactsRaw,
+      "\n-----------------------------------"
     );
-    console.error("--- Deployed Contents of api-artifacts.json ---");
-    console.error(apiArtifactsContent);
-    console.error("---------------------------------------------");
-
-    // Throw a user-friendly error that will be sent to the frontend.
     throw new Error(
-      "Server configuration error: ABI definitions are missing. Please run the deployment script (`npm run deploy:sepolia`), commit the newly generated `api-artifacts.json` file, and re-deploy the application."
+      "Server configuration error: ABI definitions are missing. " +
+        "Run the deploy script to regenerate api-artifacts.json, commit it, and redeploy."
     );
   }
 
   walletFactoryAbi = factoryAbi;
   simpleWalletAbi = walletAbi;
 
+  // ----- Chain connections
   provider = new ethers.JsonRpcProvider(RPC_URL);
   relayerWallet = new ethers.Wallet(RELAYER_PRIVATE_KEY, provider);
 
@@ -105,32 +122,30 @@ async function setup() {
   };
 }
 
-/**
- * A centralized, robust error handler for all API endpoints.
- * It parses complex ethers.js errors to find the specific revert reason and
- * returns a clear, actionable error message to the frontend.
- */
-const handleTransactionError = (error, res) => {
+// Centralized error handler for all API routes
+function handleTransactionError(error, res) {
   console.error("--- Transaction Error ---");
-  // Use a deep inspection of the error object for better debugging.
-  console.error(JSON.stringify(error, null, 2));
-
-  let errorMessage = "An internal server error occurred.";
-  let statusCode = 500;
-
-  if (error.code === "INSUFFICIENT_FUNDS") {
-    errorMessage = "Relayer is out of funds. Please notify the administrator.";
-    statusCode = 503; // Service Unavailable
-  } else if (error.reason) {
-    // The revert reason from the smart contract
-    errorMessage = error.reason;
-    statusCode = 400; // Bad Request (contract logic failure)
-  } else if (error.message) {
-    errorMessage = error.message;
+  try {
+    console.error(JSON.stringify(error, null, 2));
+  } catch {
+    console.error(error);
   }
 
-  console.error(`Responding with status ${statusCode}: ${errorMessage}`);
-  res.status(statusCode).json({ success: false, error: errorMessage });
-};
+  let status = 500;
+  let message = "An internal server error occurred.";
+
+  if (error.code === "INSUFFICIENT_FUNDS") {
+    status = 503;
+    message = "Relayer is out of funds. Please try again later.";
+  } else if (error.reason) {
+    status = 400;
+    message = error.reason;
+  } else if (error.message) {
+    message = error.message;
+  }
+
+  console.error(`Responding with ${status}: ${message}`);
+  res.status(status).json({ success: false, error: message });
+}
 
 module.exports = { setup, handleTransactionError };

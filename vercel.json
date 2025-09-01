@@ -1,6 +1,8 @@
 {
+  "version": 2,
   "functions": {
     "api/**/*.js": {
+      "runtime": "nodejs20.x",
       "includeFiles": [
         "deployed-addresses.json",
         "api-artifacts.json"
@@ -9,9 +11,6 @@
   },
   "trailingSlash": false,
   "rewrites": [
-    {
-      "source": "/((?!api/|assets/).*)",
-      "destination": "/"
-    }
+    { "source": "/((?!api/|assets/).*)", "destination": "/" }
   ]
 }

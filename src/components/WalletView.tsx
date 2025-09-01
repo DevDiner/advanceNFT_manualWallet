@@ -8,6 +8,7 @@ import { fetchErc20Balances, fetchErc721Nfts, fetchErc1155Nfts, getNftsForOwner 
 import config from '../config';
 import Spinner from './shared/Spinner';
 import Alert from './shared/Alert';
+import { checkRelayerHealth } from '../services/relayerHealth';
 
 type PortfolioTab = 'tokens' | 'nfts';
 type ActiveWallet = 'eoa' | 'smart';
@@ -21,6 +22,16 @@ const WalletView: React.FC<WalletViewProps> = ({ account, smartWalletAddress }) 
     const [isLoading, setIsLoading] = useState({ tokens: true, nfts: true });
     const [error, setError] = useState<string | null>(null);
     
+    const [relayerOk, setRelayerOk] = useState(true);
+    const [relayerMsg, setRelayerMsg] = useState<string | null>(null);
+
+    useEffect(() => {
+      checkRelayerHealth().then(r => {
+        setRelayerOk(r.ok);
+        if (!r.ok) setRelayerMsg(r.error || "Relayer not ready");
+      });
+    }, []);
+
     // Intelligently default to the smart wallet view if it exists.
     useEffect(() => {
         if (smartWalletAddress) {
@@ -127,6 +138,12 @@ const WalletView: React.FC<WalletViewProps> = ({ account, smartWalletAddress }) 
 
     return (
         <div className="space-y-8">
+            {!relayerOk && (
+              <Alert
+                type="error"
+                message={relayerMsg || "Relayer not ready. Make sure api-artifacts.json and deployed-addresses.json are committed and env vars are set."}
+              />
+            )}
             <Card>
                 {smartWalletAddress && (
                     <div className="flex justify-center mb-6 border-b border-gray-700 pb-4">
