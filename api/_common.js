@@ -6,32 +6,82 @@ const path = require("path");
 let provider, relayerWallet, addresses, walletFactoryAbi, simpleWalletAbi;
 let isInitialized = false;
 
-// robust loader that tries multiple candidate locations inside a Vercel Lambda
-function loadJsonFromCandidates(name) {
-  const candidates = [
-    // 1) next to the function bundle (where includeFiles usually land)
-    path.join(__dirname, name),
-    // 2) Lambda working directory
-    path.join(process.cwd(), name),
-    // 3) repo root relative to api/ (works in local dev / vercel dev)
-    path.join(__dirname, "..", name),
-  ];
-
-  for (const p of candidates) {
-    try {
-      if (fs.existsSync(p)) {
-        const raw = fs.readFileSync(p, "utf8");
-        if (raw && raw.trim().length > 0) {
-          console.log(`[api/_common] Loaded ${name} from: ${p}`);
-          return JSON.parse(raw);
-        }
-      }
-    } catch (e) {
-      // keep trying next candidate
+function readJsonIfExists(p) {
+  try {
+    if (fs.existsSync(p)) {
+      const raw = fs.readFileSync(p, "utf8");
+      return { json: JSON.parse(raw), raw, pathUsed: p };
     }
+  } catch (e) {
+    console.error(`[common] Failed reading/parsing ${p}:`, e.message);
   }
-  console.error(`[api/_common] FAILED to load ${name}. Checked:`, candidates);
   return null;
+}
+
+function loadArtifacts() {
+  const tried = [];
+
+  // 1) Prefer a direct require (bundlers include this automatically)
+  try {
+    // Path from /api/*.js -> root
+    const mod = require("../api-artifacts.json");
+    return {
+      json: mod,
+      raw: JSON.stringify(mod),
+      pathUsed: "../api-artifacts.json (require)",
+      tried,
+    };
+  } catch (e) {
+    tried.push("../api-artifacts.json (require): " + e.message);
+  }
+
+  // 2) Local to the function directory
+  const local = path.join(__dirname, "api-artifacts.json");
+  const localHit = readJsonIfExists(local);
+  if (localHit) return { ...localHit, tried };
+
+  // 3) Project root (Vercel copies includeFiles to function root or /var/task)
+  const roots = [
+    path.join(process.cwd(), "api-artifacts.json"),
+    "/var/task/api-artifacts.json",
+    "/var/task/user/api-artifacts.json",
+  ];
+  for (const p of roots) {
+    const hit = readJsonIfExists(p);
+    if (hit) return { ...hit, tried };
+    tried.push(p);
+  }
+
+  return { json: null, raw: "", pathUsed: null, tried };
+}
+
+function loadAddresses() {
+  const tried = [];
+
+  try {
+    const mod = require("../deployed-addresses.json");
+    return {
+      json: mod,
+      pathUsed: "../deployed-addresses.json (require)",
+      tried,
+    };
+  } catch (e) {
+    tried.push("../deployed-addresses.json (require): " + e.message);
+  }
+
+  const candidates = [
+    path.join(__dirname, "deployed-addresses.json"),
+    path.join(process.cwd(), "deployed-addresses.json"),
+    "/var/task/deployed-addresses.json",
+    "/var/task/user/deployed-addresses.json",
+  ];
+  for (const p of candidates) {
+    const hit = readJsonIfExists(p);
+    if (hit) return { json: hit.json, pathUsed: p, tried };
+    tried.push(p);
+  }
+
+  return { json: null, pathUsed: null, tried };
 }
 
 async function setup() {
@@ -51,58 +101,75 @@ async function setup() {
       ? process.env.SEPOLIA_RPC_URL
       : process.env.LOCAL_RPC_URL || "http://127.0.0.1:8545";
 
-  if (!RPC_URL) {
-    throw new Error(
-      `RPC URL for ${network} is not configured in environment variables.`
-    );
-  }
+  if (!RPC_URL)
+    throw new Error(`[common] RPC URL for ${network} is not configured`);
 
-  // IMPORTANT: env name must match what you set in Vercel
   const RELAYER_PRIVATE_KEY =
     process.env.RELAYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
-  if (!RELAYER_PRIVATE_KEY) {
-    throw new Error("RELAYER_PRIVATE_KEY is not set in environment variables.");
-  }
+  if (!RELAYER_PRIVATE_KEY)
+    throw new Error("[common] RELAYER_PRIVATE_KEY (or PRIVATE_KEY) is not set");
 
-  // Load files from multiple candidate paths
-  const addressesJson = loadJsonFromCandidates("deployed-addresses.json");
-  const apiArtifactsJson = loadJsonFromCandidates("api-artifacts.json");
-
-  if (!addressesJson) {
+  // ---- addresses.json
+  const addrLoad = loadAddresses();
+  if (!addrLoad.json) {
+    console.error(
+      "[common] Could not find deployed-addresses.json. Tried:",
+      addrLoad.tried
+    );
     throw new Error(
-      "Deployment addresses file not found. Re-run deployment and commit `deployed-addresses.json`."
+      "Deployment addresses not found. Re-run deploy and commit deployed-addresses.json"
     );
   }
-  if (!apiArtifactsJson) {
-    throw new Error(
-      "ABI artifacts file not found. Re-run deployment and commit `api-artifacts.json`."
-    );
+  addresses = addrLoad.json;
+  console.log(`[common] Using deployed-addresses from: ${addrLoad.pathUsed}`);
+  if (!addresses.factory || !ethers.isAddress(addresses.factory)) {
+    throw new Error("Invalid factory address in deployed-addresses.json");
   }
 
-  const { factoryAbi, walletAbi } = apiArtifactsJson;
+  // ---- api-artifacts.json (ABIs)
+  const artLoad = loadArtifacts();
+  if (!artLoad.json) {
+    console.error(
+      "[common] Could not find api-artifacts.json. Tried:",
+      artLoad.tried
+    );
+    throw new Error(
+      "ABI file api-artifacts.json not found. Re-run deploy and commit it"
+    );
+  }
+  console.log(`[common] Using api-artifacts from: ${artLoad.pathUsed}`);
+
+  // Validate shape
+  const { factoryAbi, walletAbi } = artLoad.json || {};
   if (
     !Array.isArray(factoryAbi) ||
     factoryAbi.length === 0 ||
     !Array.isArray(walletAbi) ||
     walletAbi.length === 0
   ) {
-    console.error("--- Contents of api-artifacts.json (truncated) ---");
-    console.error(JSON.stringify(apiArtifactsJson).slice(0, 500) + " ...");
+    console.error("[common] Bad ABI file contents:", {
+      factoryAbiType: typeof factoryAbi,
+      factoryAbiLen: Array.isArray(factoryAbi) ? factoryAbi.length : "n/a",
+      walletAbiType: typeof walletAbi,
+      walletAbiLen: Array.isArray(walletAbi) ? walletAbi.length : "n/a",
+    });
     throw new Error(
-      "ABIs are missing or empty inside api-artifacts.json. Re-run deploy to regenerate and commit it."
+      "ABIs in api-artifacts.json are missing or empty. Run the deployment script to generate them."
     );
   }
 
-  addresses = addressesJson;
   walletFactoryAbi = factoryAbi;
   simpleWalletAbi = walletAbi;
 
   provider = new ethers.JsonRpcProvider(RPC_URL);
   relayerWallet = new ethers.Wallet(RELAYER_PRIVATE_KEY, provider);
 
+  console.log(`[common] Network=${network} RPC=${RPC_URL}`);
+  console.log(`[common] Relayer=${relayerWallet.address}`);
   console.log(
-    `[api/_common] Initialized. Network=${network}, Relayer=${relayerWallet.address}`
+    `[common] ABI lengths => factory: ${factoryAbi.length}, wallet: ${walletAbi.length}`
   );
+
   isInitialized = true;
   return {
     provider,
@@ -113,24 +180,22 @@ async function setup() {
   };
 }
 
+// Centralized error response
 const handleTransactionError = (error, res) => {
+  // Errors stringify to {}, so fall back to message & stack explicitly
+  const safeMsg =
+    (error && (error.reason || error.message)) || "Internal server error";
   console.error("--- Transaction Error ---");
-  console.error(JSON.stringify(error, null, 2));
+  if (error && error.stack) console.error(error.stack);
+  else console.error(error);
 
   let status = 500;
-  let msg = "Internal server error.";
+  if (safeMsg.includes("ABIs") || safeMsg.includes("addresses")) status = 500;
+  if (safeMsg.includes("not set") || safeMsg.includes("not configured"))
+    status = 500;
+  if (safeMsg.includes("Invalid") || safeMsg.includes("Bad ABI")) status = 400;
 
-  if (error.code === "INSUFFICIENT_FUNDS") {
-    status = 503;
-    msg = "Relayer is out of funds.";
-  } else if (error.reason) {
-    status = 400;
-    msg = error.reason;
-  } else if (error.message) {
-    msg = error.message;
-  }
-
-  res.status(status).json({ success: false, error: msg });
+  res.status(status).json({ success: false, error: safeMsg });
 };
 
 module.exports = { setup, handleTransactionError };
