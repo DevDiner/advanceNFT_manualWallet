@@ -1,6 +1,11 @@
-
 {
-    "factoryAbi": [],
-    "walletAbi": []
+    "factoryAbi": [
+      "event WalletCreated(address indexed owner, address indexed walletAddress)",
+      "function walletOf(address) view returns (address)",
+      "function createWallet(address owner) returns (address)"
+    ],
+    "walletAbi": [
+      "function nonces(address) view returns (uint256)",
+      "function executeMetaTransaction(address from, address to, uint256 value, bytes calldata data, bytes calldata signature) payable returns (bytes memory)"
+    ]
   }
-  
