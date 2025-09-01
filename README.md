@@ -81,7 +81,7 @@ This is the ideal environment for rapid development. Transactions are instant an
     ```bash
     npm run deploy
     ```
-    **Action:** This creates `deployed-addresses.json`, `public/merkle-proofs.json`, and the `.env.local` file for the frontend.
+    **Action:** This creates `deployed-addresses.json`, `public/merkle-proofs.json`, `api-artifacts.json`, and the `.env.local` file for the frontend.
 
 3.  **Terminal 3: Start Frontend + Relayer (Vercel Dev Server)**
     This single command starts a local server that perfectly simulates the Vercel environment, running both the Vite frontend and the serverless API functions together.
@@ -142,7 +142,7 @@ Follow these steps to deploy the entire full-stack application (frontend dApp an
 
 ### Step 1: Deploy Contracts & Generate Local Files
 
-First, you need to deploy your smart contracts to Sepolia. This action also generates the critical `merkle-proofs.json` file that the frontend needs.
+First, you need to deploy your smart contracts to Sepolia. This action also generates the critical files that the frontend and backend need.
 
 1.  **Fund Your Wallet:** Ensure the wallet corresponding to your `PRIVATE_KEY` in `.env` has Sepolia ETH to pay for the contract deployment gas fees.
 2.  **Run the Sepolia Deployment Script:**
@@ -151,26 +151,27 @@ First, you need to deploy your smart contracts to Sepolia. This action also gene
     ```
     **What this does:**
     *   Deploys your `AdvancedNFT` and `SimpleWalletFactory` contracts to the Sepolia network.
-    *   Generates the `public/merkle-proofs.json` file based on your whitelist addresses.
-    *   Creates/updates the `.env.local` file with the new Sepolia contract addresses.
+    *   Generates `public/merkle-proofs.json` for the airdrop.
+    *   Generates `deployed-addresses.json` and `api-artifacts.json` for the backend relayer.
+    *   Creates/updates the `.env.local` file with the new Sepolia contract addresses for the frontend.
 
-### Step 2: Commit Static Assets to GitHub
+### Step 2: Commit Deployment Artifacts to GitHub
 
-The Vercel build process is clean; it only has access to files you've committed to your repository. The `merkle-proofs.json` file is now a required static asset for your application.
+The Vercel build process is clean; it only has access to files you've committed to your repository. The deployment script generates critical files that both the frontend and backend need to function.
 
-1.  **Add the file to Git:**
+1.  **Add the files to Git:**
     ```bash
-    git add public/merkle-proofs.json
+    git add public/merkle-proofs.json deployed-addresses.json api-artifacts.json
     ```
 2.  **Commit and Push:**
     ```bash
-    git commit -m "feat: Add Merkle proofs for Sepolia deployment"
+    git commit -m "feat: Add artifacts for Sepolia deployment"
     git push
     ```
 
 ### Step 3: Link Project and Deploy to Vercel
 
-This step connects your local repository to a Vercel project and performs the initial deployment to get a public URL for your relayer.
+This step connects your local repository to a Vercel project and performs the initial deployment.
 
 1.  **Install & Login to Vercel CLI:**
     ```bash
@@ -186,7 +187,7 @@ This step connects your local repository to a Vercel project and performs the in
     ```bash
     npm run deploy:vercel
     ```
-    This command builds and deploys your project to a unique preview URL. When it's done, **copy the public URL** it gives you (e.g., `https://nft-smart-contract-wallet-git-main-devds-projects-0114b344.vercel.app/`). This is your relayer's public endpoint.
+    This command builds and deploys your project to a unique preview URL.
 
 ### Step 4: Configure Environment Variables on Vercel
 
@@ -203,7 +204,6 @@ Your live application needs its secrets to function.
 | `RELAYER_PRIVATE_KEY`| `0x...` | **(Backend)** The private key for your relayer wallet. **This is highly sensitive.** |
 | `VITE_SEPOLIA_RPC_URL` | `https://sepolia.infura.io/v3/...`| **(Frontend)** The same RPC URL, but prefixed with `VITE_` to expose it to the frontend. |
 | `VITE_ETHERSCAN_API_KEY` | `YourEtherscanApiKey`| **(Frontend)** Your Etherscan API key for the portfolio viewer. |
-| `VITE_RELAYER_URL` | `https://your-project-name-....vercel.app`| **(Frontend)** The public Vercel URL you copied in the previous step. |
 
 ### Step 5: Final Production Deployment
 
@@ -344,9 +344,8 @@ Your relayer pays for gas, so it needs funds. If it runs out, gasless features w
     *   **Solution:** Go to Vercel -> Your Project -> Settings -> Environment Variables. Add the key and its value. You must then **re-deploy the project** for the change to take effect (`npm run deploy:vercel:prod`).
 
 *   **Problem:** Gasless features are failing.
-    *   **Cause 1:** The `VITE_RELAYER_URL` is not set correctly on Vercel.
-    *   **Cause 2:** The relayer wallet is out of Sepolia ETH.
-    *   **Solution:** Verify the environment variable is correct and check the relayer's balance.
+    *   **Cause:** The relayer wallet is out of Sepolia ETH.
+    *   **Solution:** Check the relayer's balance using `npm run monitor:relayer` and send it funds if needed.
 
 ---
 

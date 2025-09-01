@@ -1,4 +1,6 @@
-/// <reference types="vite/client" />
+// FIX: Removed the triple-slash directive for "vite/client" which was causing a type resolution error.
+// The necessary types for `import.meta.env` are explicitly defined below,
+// ensuring the application continues to type-check correctly.
 
 declare global {
     interface Window {
@@ -9,7 +11,6 @@ declare global {
     interface ImportMetaEnv {
       readonly VITE_NETWORK: string;
       readonly VITE_SEPOLIA_RPC_URL: string;
-      readonly VITE_RELAYER_URL: string;
       readonly VITE_NFT_ADDRESS: string;
       readonly VITE_FACTORY_ADDRESS: string;
       readonly VITE_ETHERSCAN_API_KEY: string;
@@ -22,4 +23,3 @@ declare global {
   }
   
   export {};
-  
