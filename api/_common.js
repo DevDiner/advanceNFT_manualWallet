@@ -59,18 +59,30 @@ async function setup() {
   }
 
   addresses = JSON.parse(fs.readFileSync(addressesPath, "utf8"));
-  const { factoryAbi, walletAbi } = JSON.parse(
-    fs.readFileSync(apiArtifactsPath, "utf8")
-  );
+
+  // --- Self-Diagnosing ABI Loading ---
+  const apiArtifactsContent = fs.readFileSync(apiArtifactsPath, "utf8");
+  const { factoryAbi, walletAbi } = JSON.parse(apiArtifactsContent);
 
   if (
     !factoryAbi ||
+    !Array.isArray(factoryAbi) ||
     factoryAbi.length === 0 ||
     !walletAbi ||
+    !Array.isArray(walletAbi) ||
     walletAbi.length === 0
   ) {
+    // Log the problematic content for server-side debugging in Vercel.
+    console.error(
+      "FATAL: The api-artifacts.json file is empty or malformed. This is likely because an old, empty version was committed to Git."
+    );
+    console.error("--- Deployed Contents of api-artifacts.json ---");
+    console.error(apiArtifactsContent);
+    console.error("---------------------------------------------");
+
+    // Throw a user-friendly error that will be sent to the frontend.
     throw new Error(
-      "ABIs in api-artifacts.json are missing or empty. Run the deployment script to generate them."
+      "Server configuration error: ABI definitions are missing. Please run the deployment script (`npm run deploy:sepolia`), commit the newly generated `api-artifacts.json` file, and re-deploy the application."
     );
   }
 
