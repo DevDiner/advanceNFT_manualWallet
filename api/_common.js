@@ -46,9 +46,12 @@ async function setup() {
     );
   }
 
-  // On Vercel, the CWD is the project root, so paths are simpler.
-  const addressesPath = path.resolve("./deployed-addresses.json");
-  const apiArtifactsPath = path.resolve("./api-artifacts.json");
+  // --- ROBUST PATHING FOR VERCEL RUNTIME ---
+  // The serverless function runs from /var/task/api, but the included files are at /var/task.
+  // We must use `__dirname` to build a reliable path up one level to the project root.
+  const rootDir = path.resolve(__dirname, "..");
+  const addressesPath = path.join(rootDir, "deployed-addresses.json");
+  const apiArtifactsPath = path.join(rootDir, "api-artifacts.json");
 
   if (!fs.existsSync(addressesPath) || !fs.existsSync(apiArtifactsPath)) {
     throw new Error(
