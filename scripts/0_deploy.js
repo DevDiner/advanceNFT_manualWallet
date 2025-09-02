@@ -33,7 +33,7 @@ function upsertEnvVar(filePath, key, value) {
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function main() {
-  // --- Signer Configuration (Robust for any network) ---
+  // Signer Configuration (Robust for any network)
   const signers = await hre.ethers.getSigners();
   const deployer = signers[0];
   if (!deployer) {
@@ -116,9 +116,13 @@ async function main() {
     "SimpleWalletFactory"
   );
   const walletArtifact = await hre.artifacts.readArtifact("SimpleWallet");
-  const apiArtifactsPath = path.join(__dirname, "..", "api-artifacts.json");
+  const relayerArtifactsPath = path.join(
+    __dirname,
+    "..",
+    "relayer-artifacts.json"
+  );
   fs.writeFileSync(
-    apiArtifactsPath,
+    relayerArtifactsPath,
     JSON.stringify(
       {
         factoryAbi: factoryArtifact.abi,
@@ -128,7 +132,7 @@ async function main() {
       2
     )
   );
-  console.log(`✅ API artifacts (ABIs) saved to ${apiArtifactsPath}.`);
+  console.log(`✅ Relayer artifacts (ABIs) saved to ${relayerArtifactsPath}.`);
 
   // 5. Frontend Environment Configuration
   const envLocalPath = path.join(__dirname, "..", ".env.local");

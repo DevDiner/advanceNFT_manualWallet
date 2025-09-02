@@ -6,82 +6,54 @@ const path = require("path");
 let provider, relayerWallet, addresses, walletFactoryAbi, simpleWalletAbi;
 let isInitialized = false;
 
-function readJsonIfExists(p) {
+// A resilient loader that tries multiple common paths for a file in a Vercel env.
+function loadJsonFile(baseName) {
+  const triedPaths = [];
+
+  // Attempt to `require` first, which works well with bundlers.
   try {
+    const requiredModule = require(`../${baseName}`);
+    return {
+      json: requiredModule,
+      raw: JSON.stringify(requiredModule),
+      path: `require('../${baseName}')`,
+      triedPaths,
+    };
+  } catch (e) {
+    triedPaths.push(`require('../${baseName}'): ${e.message}`);
+  }
+
+  // Define a list of candidate paths to check.
+  const candidatePaths = [
+    path.join(process.cwd(), baseName), // Vercel copies `includeFiles` here.
+    path.join(__dirname, "..", baseName), // Relative path from /api/_common.js to root.
+    path.join(__dirname, baseName), // Path if file is in the same dir as the script.
+    `/var/task/${baseName}`, // Absolute path in Vercel runtime.
+    `/var/task/user/${baseName}`, // Another possible Vercel runtime path.
+  ];
+
+  for (const p of candidatePaths) {
+    triedPaths.push(p);
     if (fs.existsSync(p)) {
-      const raw = fs.readFileSync(p, "utf8");
-      return { json: JSON.parse(raw), raw, pathUsed: p };
+      try {
+        const raw = fs.readFileSync(p, "utf8");
+        const json = JSON.parse(raw);
+        return { json, raw, path: p, triedPaths };
+      } catch (e) {
+        // If the file exists but is malformed, we still want to stop and report it.
+        console.error(
+          `[common] Error parsing JSON from existing file: ${p}`,
+          e
+        );
+        throw new Error(
+          `Could not parse ${baseName} at ${p}. It may be corrupted.`
+        );
+      }
     }
-  } catch (e) {
-    console.error(`[common] Failed reading/parsing ${p}:`, e.message);
-  }
-  return null;
-}
-
-function loadArtifacts() {
-  const tried = [];
-
-  // 1) Prefer a direct require (bundlers include this automatically)
-  try {
-    // Path from /api/*.js -> root
-    const mod = require("../api-artifacts.json");
-    return {
-      json: mod,
-      raw: JSON.stringify(mod),
-      pathUsed: "../api-artifacts.json (require)",
-      tried,
-    };
-  } catch (e) {
-    tried.push("../api-artifacts.json (require): " + e.message);
   }
 
-  // 2) Local to the function directory
-  const local = path.join(__dirname, "api-artifacts.json");
-  const localHit = readJsonIfExists(local);
-  if (localHit) return { ...localHit, tried };
-
-  // 3) Project root (Vercel copies includeFiles to function root or /var/task)
-  const roots = [
-    path.join(process.cwd(), "api-artifacts.json"),
-    "/var/task/api-artifacts.json",
-    "/var/task/user/api-artifacts.json",
-  ];
-  for (const p of roots) {
-    const hit = readJsonIfExists(p);
-    if (hit) return { ...hit, tried };
-    tried.push(p);
-  }
-
-  return { json: null, raw: "", pathUsed: null, tried };
-}
-
-function loadAddresses() {
-  const tried = [];
-
-  try {
-    const mod = require("../deployed-addresses.json");
-    return {
-      json: mod,
-      pathUsed: "../deployed-addresses.json (require)",
-      tried,
-    };
-  } catch (e) {
-    tried.push("../deployed-addresses.json (require): " + e.message);
-  }
-
-  const candidates = [
-    path.join(__dirname, "deployed-addresses.json"),
-    path.join(process.cwd(), "deployed-addresses.json"),
-    "/var/task/deployed-addresses.json",
-    "/var/task/user/deployed-addresses.json",
-  ];
-  for (const p of candidates) {
-    const hit = readJsonIfExists(p);
-    if (hit) return { json: hit.json, pathUsed: p, tried };
-    tried.push(p);
-  }
-
-  return { json: null, pathUsed: null, tried };
+  // If we get here, the file was not found in any of the candidate paths.
+  return { json: null, raw: null, path: null, triedPaths };
 }
 
 async function setup() {
@@ -109,52 +81,66 @@ async function setup() {
   if (!RELAYER_PRIVATE_KEY)
     throw new Error("[common] RELAYER_PRIVATE_KEY (or PRIVATE_KEY) is not set");
 
-  // ---- addresses.json
-  const addrLoad = loadAddresses();
-  if (!addrLoad.json) {
+  // ---- Load deployed-addresses.json ----
+  const addrFile = loadJsonFile("deployed-addresses.json");
+  if (!addrFile.json) {
     console.error(
-      "[common] Could not find deployed-addresses.json. Tried:",
-      addrLoad.tried
+      "[common] FATAL: Could not find deployed-addresses.json. Searched paths:",
+      addrFile.triedPaths
     );
     throw new Error(
-      "Deployment addresses not found. Re-run deploy and commit deployed-addresses.json"
+      "Deployment addresses not found. Ensure deployed-addresses.json is committed and included in Vercel deployment."
     );
   }
-  addresses = addrLoad.json;
-  console.log(`[common] Using deployed-addresses from: ${addrLoad.pathUsed}`);
+  addresses = addrFile.json;
+  console.log(`[common] Loaded addresses from: ${addrFile.path}`);
+
   if (!addresses.factory || !ethers.isAddress(addresses.factory)) {
-    throw new Error("Invalid factory address in deployed-addresses.json");
+    throw new Error(
+      `Invalid factory address in deployed-addresses.json: ${addresses.factory}`
+    );
   }
 
-  // ---- api-artifacts.json (ABIs)
-  const artLoad = loadArtifacts();
-  if (!artLoad.json) {
+  // ---- Load relayer-artifacts.json (ABIs) ----
+  const abiFile = loadJsonFile("relayer-artifacts.json");
+  if (!abiFile.json) {
     console.error(
-      "[common] Could not find api-artifacts.json. Tried:",
-      artLoad.tried
+      "[common] FATAL: Could not find relayer-artifacts.json. Searched paths:",
+      abiFile.triedPaths
     );
     throw new Error(
-      "ABI file api-artifacts.json not found. Re-run deploy and commit it"
+      "ABI file relayer-artifacts.json not found. Ensure it is generated by the deploy script, committed, and included in Vercel deployment."
     );
   }
-  console.log(`[common] Using api-artifacts from: ${artLoad.pathUsed}`);
+  console.log(`[common] Loaded ABIs from: ${abiFile.path}`);
 
-  // Validate shape
-  const { factoryAbi, walletAbi } = artLoad.json || {};
+  // --- SELF-DIAGNOSING VALIDATION ---
+  // This is the most critical part. It checks the *content* of the loaded file.
+  const { factoryAbi, walletAbi } = abiFile.json;
   if (
     !Array.isArray(factoryAbi) ||
     factoryAbi.length === 0 ||
     !Array.isArray(walletAbi) ||
     walletAbi.length === 0
   ) {
-    console.error("[common] Bad ABI file contents:", {
-      factoryAbiType: typeof factoryAbi,
-      factoryAbiLen: Array.isArray(factoryAbi) ? factoryAbi.length : "n/a",
-      walletAbiType: typeof walletAbi,
-      walletAbiLen: Array.isArray(walletAbi) ? walletAbi.length : "n/a",
-    });
+    // Log the raw content of the file to the server logs for definitive proof.
+    console.error(
+      "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    );
+    console.error(
+      "!!! FATAL: The deployed relayer-artifacts.json file is malformed or empty."
+    );
+    console.error(
+      "!!! This usually means an old, empty version of the file was committed to Git."
+    );
+    console.error("!!! RAW FILE CONTENT:", abiFile.raw);
+    console.error(
+      "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    );
+
+    // Throw a user-friendly error that will be sent to the frontend.
     throw new Error(
-      "ABIs in api-artifacts.json are missing or empty. Run the deployment script to generate them."
+      "ABIs in relayer-artifacts.json are missing or empty. This is a deployment issue. Please run the deployment script locally, commit the generated file, and re-deploy to Vercel."
     );
   }
 
@@ -164,10 +150,8 @@ async function setup() {
   provider = new ethers.JsonRpcProvider(RPC_URL);
   relayerWallet = new ethers.Wallet(RELAYER_PRIVATE_KEY, provider);
 
-  console.log(`[common] Network=${network} RPC=${RPC_URL}`);
-  console.log(`[common] Relayer=${relayerWallet.address}`);
   console.log(
-    `[common] ABI lengths => factory: ${factoryAbi.length}, wallet: ${walletAbi.length}`
+    `[common] Setup complete. Relayer: ${relayerWallet.address} on network: ${network}`
   );
 
   isInitialized = true;
@@ -182,18 +166,16 @@ async function setup() {
 
 // Centralized error response
 const handleTransactionError = (error, res) => {
-  // Errors stringify to {}, so fall back to message & stack explicitly
   const safeMsg =
-    (error && (error.reason || error.message)) || "Internal server error";
-  console.error("--- Transaction Error ---");
-  if (error && error.stack) console.error(error.stack);
-  else console.error(error);
+    (error && (error.reason || error.message)) ||
+    "An unexpected internal server error occurred.";
+  console.error("--- API Transaction Error ---");
+  // Log the full error stack for server-side debugging
+  console.error(error);
 
+  // Default to 500 but adjust for client-side errors if possible
   let status = 500;
-  if (safeMsg.includes("ABIs") || safeMsg.includes("addresses")) status = 500;
-  if (safeMsg.includes("not set") || safeMsg.includes("not configured"))
-    status = 500;
-  if (safeMsg.includes("Invalid") || safeMsg.includes("Bad ABI")) status = 400;
+  if (safeMsg.includes("Invalid") || safeMsg.includes("required")) status = 400;
 
   res.status(status).json({ success: false, error: safeMsg });
 };
