@@ -1,19 +1,13 @@
 {
   "functions": {
     "api/deploy-wallet.js": {
-      "includeFiles": [
-        "deployed-addresses.json"
-      ]
+      "includeFiles": "deployed-addresses.json"
     },
     "api/relay.js": {
-      "includeFiles": [
-        "deployed-addresses.json"
-      ]
+      "includeFiles": "deployed-addresses.json"
     },
     "api/health.js": {
-      "includeFiles": [
-        "deployed-addresses.json"
-      ]
+      "includeFiles": "deployed-addresses.json"
     }
   },
   "trailingSlash": false,
