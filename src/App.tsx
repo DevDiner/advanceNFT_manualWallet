@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ethers } from 'ethers';
+import { ethers, EventLog, Log } from 'ethers';
 import axios from 'axios';
 
 import Header from './components/Header';
@@ -37,8 +37,8 @@ const App: React.FC = () => {
 
     const checkNetwork = useCallback(async () => {
         try {
-            if (!window.ethereum) return false;
-            const provider = new ethers.BrowserProvider(window.ethereum);
+            if (!(window as any).ethereum) return false;
+            const provider = new ethers.BrowserProvider((window as any).ethereum);
             const network = await provider.getNetwork();
             if (network.chainId !== BigInt(config.chainId)) {
                 setNetworkError(`Wrong network. Please connect to ${config.networkName}.`);
@@ -119,7 +119,7 @@ const App: React.FC = () => {
                 // by breaking a large historical scan into a series of smaller, compliant requests.
                 const CHUNK_SIZE = 9; 
                 const MAX_BLOCKS_TO_SCAN = 500; // Look back a reasonable distance.
-                let lastEvent = null;
+                let lastEvent: EventLog | Log | null = null;
 
                 for (let i = 0; i < MAX_BLOCKS_TO_SCAN; i += (CHUNK_SIZE + 1)) {
                     const toBlock = latestBlock - i;
@@ -140,8 +140,13 @@ const App: React.FC = () => {
                 }
 
                 if (lastEvent) {
-                    if ('args' in lastEvent && lastEvent.args) {
-                       const lastTokenId = lastEvent.args.tokenId;
+                    // This is a pragmatic cast to bypass a complex TS inference issue where `lastEvent`
+                    // can be incorrectly narrowed to `never`, despite runtime checks.
+                    const eventWithArgs = lastEvent as any;
+                    if (eventWithArgs.args && eventWithArgs.args.length > 1) {
+                       // The `Minted` event is defined as: `event Minted(address minter, uint256 tokenId, ...)`.
+                       // The `tokenId` is the second argument, accessible at index 1 of the `args` array.
+                       const lastTokenId = eventWithArgs.args[1];
                        await fetchNftPreviewData(lastTokenId);
                     }
                 } else {
@@ -164,13 +169,13 @@ const App: React.FC = () => {
     }, []);
 
     const connectWallet = useCallback(async () => {
-        if (!window.ethereum) {
+        if (!(window as any).ethereum) {
             setAppError("No wallet found. Please install MetaMask.");
             return;
         }
         setAppError(null);
         try {
-            const provider = new ethers.BrowserProvider(window.ethereum);
+            const provider = new ethers.BrowserProvider((window as any).ethereum);
             const accounts = await provider.send("eth_requestAccounts", []);
             if (accounts.length > 0) {
                 const userAccount = accounts[0];
@@ -193,8 +198,8 @@ const App: React.FC = () => {
                 await assertContractDeployed();
                 await fetchContractData();
 
-                if (window.ethereum && localStorage.getItem('walletConnected') === 'true') {
-                    const provider = new ethers.BrowserProvider(window.ethereum);
+                if ((window as any).ethereum && localStorage.getItem('walletConnected') === 'true') {
+                    const provider = new ethers.BrowserProvider((window as any).ethereum);
                     const accounts = await provider.send("eth_accounts", []);
 
                     if (accounts.length > 0) {
@@ -219,7 +224,7 @@ const App: React.FC = () => {
     }, [checkNetwork, fetchContractData, fetchSmartWalletAddress, disconnectWallet]);
 
     useEffect(() => {
-        const ethereum = window.ethereum;
+        const ethereum = (window as any).ethereum;
         if (ethereum) {
             const handleAccountsChanged = (accounts: string[]) => {
                 if (accounts.length > 0) {
