@@ -110,22 +110,47 @@ const App: React.FC = () => {
             setMintPrice(ethers.formatEther(price));
 
             if (mintedNum > 0) {
-                const filter = contract.filters.Minted();
                 const provider = getReadOnlyProvider();
+                const filter = contract.filters.Minted();
                 const latestBlock = await provider.getBlockNumber();
-                const fromBlock = Math.max(0, latestBlock - 499); 
-                const events = await contract.queryFilter(filter, fromBlock); 
-                if (events.length > 0) {
-                    const lastEvent = events[events.length - 1];
-                    if (lastEvent && 'args' in lastEvent && lastEvent.args) {
+                
+                // --- Chunking Strategy ---
+                // This approach respects free RPC provider limits (e.g., 10-block range)
+                // by breaking a large historical scan into a series of smaller, compliant requests.
+                const CHUNK_SIZE = 9; 
+                const MAX_BLOCKS_TO_SCAN = 500; // Look back a reasonable distance.
+                let lastEvent = null;
+
+                for (let i = 0; i < MAX_BLOCKS_TO_SCAN; i += (CHUNK_SIZE + 1)) {
+                    const toBlock = latestBlock - i;
+                    const fromBlock = Math.max(0, toBlock - CHUNK_SIZE);
+                    
+                    try {
+                        const events = await contract.queryFilter(filter, fromBlock, toBlock);
+                        if (events.length > 0) {
+                            // The last event in the array is the most recent in this chunk.
+                            lastEvent = events[events.length - 1];
+                            break; // Exit loop once we find the most recent event.
+                        }
+                    } catch (e) {
+                         console.warn(`Could not query block range ${fromBlock}-${toBlock}. This may be expected on some networks.`, e);
+                    }
+
+                    if (fromBlock === 0) break; // Stop if we've reached the genesis block.
+                }
+
+                if (lastEvent) {
+                    if ('args' in lastEvent && lastEvent.args) {
                        const lastTokenId = lastEvent.args.tokenId;
                        await fetchNftPreviewData(lastTokenId);
                     }
+                } else {
+                    console.warn(`No "Minted" event found in the last ${MAX_BLOCKS_TO_SCAN} blocks.`);
+                    setNftPreviewData(null);
                 }
             } else {
                  setNftPreviewData(null);
             }
-
         } catch (err: any) {
             console.error("Error fetching contract data:", err);
             setAppError(err.reason || "Could not load contract data.");

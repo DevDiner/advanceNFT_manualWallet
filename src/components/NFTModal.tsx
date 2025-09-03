@@ -83,7 +83,7 @@ const NFTModal: React.FC<NFTModalProps> = ({ nft, onClose }) => {
                     {/* --- Metadata Column --- */}
                     <div className="w-full md:w-1/2 p-6 md:p-8 overflow-y-auto">
                         <div className="flex justify-between items-start mb-2">
-                             <h2 className="text-3xl font-bold text-white pr-8">{metadata.name}</h2>
+                             <h2 id="nft-modal-title" className="text-3xl font-bold text-white pr-8">{metadata.name}</h2>
                              <button onClick={handleClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors" aria-label="Close">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                              </button>
@@ -126,6 +126,7 @@ const NFTModal: React.FC<NFTModalProps> = ({ nft, onClose }) => {
             onClick={handleBackdropClick}
             role="dialog"
             aria-modal="true"
+            aria-labelledby="nft-modal-title"
         >
             <div className={`
                 bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-lg md:max-w-4xl 
