@@ -81,7 +81,7 @@ This is the ideal environment for rapid development. Transactions are instant an
     ```bash
     npm run deploy
     ```
-    **Action:** This creates `deployed-addresses.json`, `public/merkle-proofs.json`, `api-artifacts.json`, and the `.env.local` file for the frontend.
+    **Action:** This creates `deployed-addresses.json`, `public/merkle-proofs.json`, `relayer-artifacts.json`, `api/_ABI.js`, and the `.env.local` file for the frontend.
 
 3.  **Terminal 3: Start Frontend + Relayer (Vercel Dev Server)**
     This single command starts a local server that perfectly simulates the Vercel environment, running both the Vite frontend and the serverless API functions together.
@@ -152,7 +152,7 @@ First, you need to deploy your smart contracts to Sepolia. This action also gene
     **What this does:**
     *   Deploys your `AdvancedNFT` and `SimpleWalletFactory` contracts to the Sepolia network.
     *   Generates `public/merkle-proofs.json` for the airdrop.
-    *   Generates `deployed-addresses.json` and `api-artifacts.json` for the backend relayer.
+    *   Generates `deployed-addresses.json`, `relayer-artifacts.json`, and the `api/_ABI.js` module for the backend relayer.
     *   Creates/updates the `.env.local` file with the new Sepolia contract addresses for the frontend.
 
 ### Step 2: Commit Deployment Artifacts to GitHub
@@ -161,7 +161,7 @@ The Vercel build process is clean; it only has access to files you've committed 
 
 1.  **Add the files to Git:**
     ```bash
-    git add public/merkle-proofs.json deployed-addresses.json api-artifacts.json
+    git add public/merkle-proofs.json deployed-addresses.json relayer-artifacts.json api/_ABI.js
     ```
 2.  **Commit and Push:**
     ```bash
