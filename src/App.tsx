@@ -114,7 +114,7 @@ const App: React.FC = () => {
                 const filter = contract.filters.Minted();
                 const latestBlock = await provider.getBlockNumber();
                 
-                // --- Chunking Strategy ---
+                //  Chunking Strategy 
                 // This approach respects free RPC provider limits (e.g., 10-block range)
                 // by breaking a large historical scan into a series of smaller, compliant requests.
                 const CHUNK_SIZE = 9; 
@@ -268,7 +268,7 @@ const App: React.FC = () => {
                 throw new Error(response.data.error || "Failed to deploy wallet.");
             }
         } catch (err: any) {
-            // --- "Self-healing" UI logic ---
+            // "Self-healing" UI logic 
             // If the relayer returns a 409 Conflict, it means the wallet already exists,
             // but our frontend state is out of sync. We can use the address from the response.
             if (axios.isAxiosError(err) && err.response?.status === 409) {

@@ -4,15 +4,27 @@ import { ADVANCED_NFT_ABI, SIMPLE_WALLET_FACTORY_ABI } from '../constants';
 import config from '../config';
 import { Erc20Token, Nft, NftMetadata } from '../types';
 
+//  Singleton Provider Instances 
+// This pattern prevents the "Block tracker destroyed" error from MetaMask by ensuring
+// that we use a single, stable connection instead of creating new ones on every call.
+let jsonRpcProviderInstance: ethers.JsonRpcProvider | null = null;
+let browserProviderInstance: ethers.BrowserProvider | null = null;
+
 export const getReadOnlyProvider = (): ethers.Provider => {
-    return new ethers.JsonRpcProvider(config.rpcUrl);
+    if (!jsonRpcProviderInstance) {
+        jsonRpcProviderInstance = new ethers.JsonRpcProvider(config.rpcUrl);
+    }
+    return jsonRpcProviderInstance;
 };
 
 export const getProvider = (): ethers.BrowserProvider => {
-    if (typeof window === 'undefined' || !window.ethereum) {
+    if (typeof window === 'undefined' || !(window as any).ethereum) {
         throw new Error("No wallet found. Please install a web3 wallet like MetaMask.");
     }
-    return new ethers.BrowserProvider(window.ethereum);
+    if (!browserProviderInstance) {
+        browserProviderInstance = new ethers.BrowserProvider((window as any).ethereum);
+    }
+    return browserProviderInstance;
 };
 
 export const getSigner = async (): Promise<ethers.Signer> => {
@@ -103,7 +115,7 @@ export const getNftsForOwner = async (ownerAddress: string): Promise<Nft[]> => {
 };
 
 
-// PORTFOLIO SERVICES (for live networks) ---
+// PORTFOLIO SERVICES (for live networks) 
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -301,7 +313,7 @@ export const fetchErc1155Nfts = async (ownerAddress: string): Promise<Nft[]> => 
     
     const response1155 = await axiosWithRetries(url1155);
 
-    // --- Robust Etherscan API Response Handling ---
+    //  Robust Etherscan API Response Handling 
     if (response1155.data.status !== "1") {
         if (response1155.data.message === 'No transactions found') {
             return []; // Not an error.
@@ -363,7 +375,7 @@ export const fetchErc20Balances = async (ownerAddress: string): Promise<Erc20Tok
     const url = `${config.etherscanApiUrl}?chainId=${config.chainId}&module=account&action=tokentx&address=${ownerAddress}&startblock=0&sort=asc&apikey=${config.etherscanApiKey}`;
     const response = await axiosWithRetries(url);
     
-    // --- Robust Etherscan API Response Handling ---
+    // Robust Etherscan API Response Handling 
     if (response.data.status !== "1") {
         if (response.data.message === 'No transactions found') {
             return []; // Not an error.
