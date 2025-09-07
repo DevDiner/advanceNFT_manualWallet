@@ -39,6 +39,7 @@ const RelayerDemo: React.FC<RelayerDemoProps> = ({ account, smartWalletAddress }
             const signature = await signer.signTypedData(domain, types, message);
             
             // FIX: Convert all BigInt values to strings for JSON serialization.
+            // This prevents a TypeError and ensures the backend receives the correct data.
             const payload = {
                  ...message,
                  nonce: message.nonce.toString(),
