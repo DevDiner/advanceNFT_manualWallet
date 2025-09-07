@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { getContractWithSigner, getContract, getProvider, getReadOnlyProvider } from '../services/ethersService';
@@ -271,22 +265,21 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalle
         handleError(err, defaultMessage);
 
         // Step 2: Automatically trigger a re-fetch to "heal" the UI.
+        // This is crucial for preventing state mismatches if a user rejects a transaction
+        // or if it fails on-chain for any reason.
         setTimeout(() => {
-            console.log("Transaction failed due to possible state mismatch. Re-synchronizing with blockchain...");
+            console.log("Transaction failed. Re-synchronizing with the blockchain to ensure UI consistency...");
             checkCommitStatus();
-        }, 3000);
+        }, 2000);
     }, [handleError, checkCommitStatus]);
 
     const handleCommit = async (viaSmartWallet: boolean) => {
         if (!secret || !account) return;
         setMintingState({ status: 'committing', message: 'Processing commit...', txHash: null });
         try {
-            // FIX: Reverted to the correct commit hash scheme used by the smart contract.
-            // All simulation scripts (airdrop, public sale, meta-tx) confirm that
-            // the contract expects a simple keccak256 hash of the secret for all commits.
             const commitHash = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(['bytes32'], [secret]));
             
-            let tx; let finalTxHash;
+            let finalTxHash;
             if (viaSmartWallet && smartWalletAddress && !isAirdrop) {
                 const nftInterface = new ethers.Interface(["function commitPublic(bytes32 commitHash)"]);
                 const calldata = nftInterface.encodeFunctionData("commitPublic", [commitHash]);
@@ -303,7 +296,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalle
                 finalTxHash = response.data.txHash;
             } else {
                 const contract = await getContractWithSigner();
-                tx = isAirdrop ? await contract.commitAirdrop(commitHash) : await contract.commitPublic(commitHash, { value: ethers.parseEther(mintPrice) });
+                const tx = isAirdrop ? await contract.commitAirdrop(commitHash) : await contract.commitPublic(commitHash, { value: ethers.parseEther(mintPrice) });
                 finalTxHash = tx.hash;
                 await tx.wait();
             }
@@ -311,7 +304,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalle
             setMintingState({ status: 'success', message: 'Commit successful! Waiting for block confirmation to update status.', txHash: finalTxHash });
             checkCommitStatus();
         } catch (err: any) {
-            handleError(err, "Commit failed.");
+            handleTxError(err, "Commit failed.");
         }
     };
     
@@ -319,7 +312,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalle
        if (!secret || !account || !commitDetails) return;
         setMintingState({ status: 'revealing', message: "Processing reveal...", txHash: null });
         try {
-            let tx; let finalTxHash;
+            let finalTxHash;
             const recipient = commitDetails.committer;
             if (recipient === smartWalletAddress) {
                 const nftInterface = new ethers.Interface(["function mintFor(address recipient, bytes32 secret)"]);
@@ -337,7 +330,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({ account, smartWalle
                 finalTxHash = response.data.txHash;
             } else {
                 const contract = await getContractWithSigner();
-                tx = commitDetails.isAirdrop ? await contract.revealAirdrop(merkleIndex!, secret, merkleProof!) : await contract.mintFor(recipient, secret);
+                const tx = commitDetails.isAirdrop ? await contract.revealAirdrop(merkleIndex!, secret, merkleProof!) : await contract.mintFor(recipient, secret);
                 finalTxHash = tx.hash;
                 await tx.wait();
             }
