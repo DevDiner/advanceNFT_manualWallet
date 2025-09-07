@@ -73,6 +73,7 @@ contract SimpleWallet is EIP712, IERC721Receiver, IERC1155Receiver, ERC165, Owna
 
         unchecked { ++nonces[from]; }
 
+        // forward ETH along with the call so mintPrice is paid.
         (bool ok, bytes memory ret) = to.call{value: value}(data);
         require(ok, "Meta-transaction call failed");
 
@@ -81,20 +82,17 @@ contract SimpleWallet is EIP712, IERC721Receiver, IERC1155Receiver, ERC165, Owna
     }
 
     /*  ERC20 admin helpers  */
-    /// @notice Transfer ERC20 held by this wallet to `to`.
     function erc20Transfer(address token, address to, uint256 amount) external onlyOwner {
         IERC20(token).safeTransfer(to, amount);
         emit ERC20Transferred(token, to, amount);
     }
 
-    /// @notice Approve an ERC20 spender from this wallet (reset to 0 then set).
     function erc20Approve(address token, address spender, uint256 amount) external onlyOwner {
         IERC20(token).forceApprove(spender, 0);
         IERC20(token).forceApprove(spender, amount);
         emit ERC20Approved(token, spender, amount);
     }
 
-    /// @notice Pull ERC20 from an external `from` (who must have approved this wallet).
     function erc20TransferFrom(address token, address from, address to, uint256 amount) external onlyOwner {
         IERC20(token).safeTransferFrom(from, to, amount);
         emit ERC20Pulled(token, from, to, amount);
@@ -105,21 +103,15 @@ contract SimpleWallet is EIP712, IERC721Receiver, IERC1155Receiver, ERC165, Owna
 
     function onERC721Received(address, address, uint256, bytes calldata)
         external pure override returns (bytes4)
-    {
-        return this.onERC721Received.selector;
-    }
+    { return this.onERC721Received.selector; }
 
     function onERC1155Received(address, address, uint256, uint256, bytes calldata)
         external pure override returns (bytes4)
-    {
-        return this.onERC1155Received.selector;
-    }
+    { return this.onERC1155Received.selector; }
 
     function onERC1155BatchReceived(address, address, uint256[] calldata, uint256[] calldata, bytes calldata)
         external pure override returns (bytes4)
-    {
-        return this.onERC1155BatchReceived.selector;
-    }
+    { return this.onERC1155BatchReceived.selector; }
 
     /*  ERC165  */
     function supportsInterface(bytes4 interfaceId)
