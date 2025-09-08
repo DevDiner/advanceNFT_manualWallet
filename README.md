@@ -1,5 +1,4 @@
 
-
 # Advanced Full-Stack NFT Project + Built From-Scratch Wallet
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-View%20on%20Vercel-black?style=for-the-badge)](https://your-vercel-deployment-link.vercel.app)
@@ -13,6 +12,7 @@ This is a comprehensive, full-stack NFT project designed to serve as a professio
 
 -   **Gasless User Experience:** Users can create a personal smart contract wallet and mint NFTs without paying for gas, thanks to a custom-built, EIP-712 compliant meta-transaction relayer.
 -   **Fair & Secure Minting:** Employs a commit-reveal scheme with a configurable delay to prevent front-running and guarantee a fair minting experience.
+-   **Secure Contributor Payouts:** Implements a battle-tested, pull-based payment splitter for distributing minting proceeds, ensuring contributors can securely and reliably withdraw their share of the funds at any time.
 -   **Multi-Asset Portfolio Dashboard:** A feature-rich "My Wallet" page that acts as a true portfolio viewer, using a resilient, **rate-limit-aware** Etherscan API client to display a wallet's balance of ETH, all **ERC20** tokens, and all **ERC-721 & ERC-1155** NFTs.
 -   **100% On-Chain Generative Art:** NFT artwork is generated and stored directly on the blockchain as an SVG, making the asset entirely self-contained and permanent.
 -   **Gas-Efficient Airdrop System:** Utilizes a Merkle tree to manage the presale whitelist, allowing for a virtually unlimited number of users with minimal on-chain costs.
@@ -41,16 +41,12 @@ This is a comprehensive, full-stack NFT project designed to serve as a professio
 
 ## Deep Dive: Key Technical Features
 
-### 1. The "Security Deposit" Gasless Model
+### 1. Gasless Meta-Transactions & Smart Wallets
 
-This project implements a meta-transaction system to provide a "gasless" experience for the user. The relayer pays the gas, but the user must prove they can afford the mint.
-
--   **User Pays (Proof of Funds):** To use the gasless feature, the user must first send ETH equal to the `mintPrice` to their smart wallet. The UI enforces this by disabling the gasless button until the on-chain balance is sufficient. This acts as a **security deposit**.
--   **User Authorizes (Free Signature):** The user signs a structured EIP-712 message representing their desired transaction (e.g., "mint an NFT"). This is a cryptographic signature and costs no gas.
--   **Relayer Sponsors (Gas + Fronts Mint Price):** This signed message is sent to the backend relayer. The relayer pays the gas fee and also *fronts* the `mintPrice` to the smart wallet as part of the transaction.
--   **Smart Wallet Executes:** The user's `SimpleWallet.sol` contract verifies the user's signature. It then immediately forwards the `mintPrice` it just received from the relayer to the NFT contract to pay for the mint. The user's original "security deposit" balance is never spent in this simplified model.
-
-This architecture protects the relayer from sponsoring transactions that would fail because the user cannot afford the asset, a crucial consideration for a production system.
+This project implements a meta-transaction system to provide a "gasless" experience.
+-   **User Action:** The user signs a structured EIP-712 message representing their desired transaction (e.g., "mint an NFT"). This is a cryptographic signature and is free.
+-   **Relayer Action:** This signed message is sent to a Node.js serverless function running on Vercel. The relayer wraps this message in a real Ethereum transaction and pays the gas fee to submit it to the blockchain.
+-   **Smart Contract Wallet:** The user's personal `SimpleWallet.sol` contract receives the transaction. It uses cryptography (`ecrecover`) to verify that the message was genuinely signed by the wallet's owner before executing the action.
 
 ### 2. Commit-Reveal Minting Scheme
 
@@ -63,6 +59,14 @@ To prevent front-running and ensure a fair mint, a two-step process is used:
 The NFT's artwork and metadata are generated and stored directly on the blockchain.
 -   **`tokenSVG()`:** This function in `AdvancedNFT.sol` uses the `tokenId`, `minter` address, and `block.timestamp` as sources of pseudo-randomness to generate a unique SVG image string.
 -   **`tokenURI()`:** This function generates a Base64 encoded JSON metadata object, which includes the name, description, and the SVG image data. This is compliant with the ERC-721 metadata standard and ensures the NFT is entirely self-contained and permanent.
+
+### 4. Secure Contributor Payouts (Manual Payment Splitter)
+
+This project ensures that revenue from NFT sales is distributed to contributors securely and transparently. Instead of a potentially risky `withdraw` function that pushes funds, it uses a manual, pull-based payment system inspired by OpenZeppelin's `PaymentSplitter` contract.
+
+-   **On-Chain Accounting:** The contract tracks the total ETH received and how much has been released to each contributor based on their pre-defined shares.
+-   **Pull-Based Withdrawals:** Each contributor must call a `release(address)` function to "pull" their share of the funds. This is significantly safer than push-based systems, as it prevents re-entrancy attacks and issues with recipients that cannot accept ETH (e.g., a smart contract with no `receive` function).
+-   **Fair & Accurate:** Payouts are calculated based on the contract's total current ETH balance and each contributor's shares, ensuring fair and accurate distribution of all proceeds.
 
 ---
 
@@ -306,25 +310,6 @@ A `500` error almost always means one of two things:
     4.  **Re-deploy to Vercel:** `npm run deploy:vercel:prod`
 
 This workflow ensures that the live Vercel deployment is built with the exact same configuration as your successful local deployment, resolving the error.
-
----
-## Architectural Note: Production-Grade Relayers
-
-This project utilizes a "Security Deposit" model for its gasless transactions. This model is an excellent educational tool for demonstrating the core mechanics of meta-transactions and on-chain signature verification in a portfolio piece.
-
-**How it works:**
-- The user must pre-fund their smart wallet with enough ETH to cover the `mintPrice`.
-- The UI checks this on-chain balance before enabling the gasless option.
-- This acts as a proof-of-funds, guaranteeing to the relayer that if it pays the gas for a transaction, the transaction won't fail because the user can't afford the asset.
-
-**How Industry-Standard Relayers Differ:**
-For a large-scale, production application, most services (like Biconomy) use a more efficient **Off-Chain Credit/Debit System**.
-
-- **User Onboarding:** Instead of funding their smart wallet on-chain, users deposit funds (ETH, USDC, or even fiat) into a centralized, off-chain account with the relayer service.
-- **Transaction Flow:** When a user wants to perform a gasless action, the relayer first checks its own private database to see if the user has a sufficient balance. If they do, the relayer pays the gas and fronts any asset cost.
-- **Reimbursement:** Upon successful on-chain confirmation, the relayer simply debits the user's account in its private database.
-
-This off-chain approach is the industry standard because it is far more gas-efficient (avoiding the need for on-chain reimbursement transactions) and offers a superior user experience (users can pay with various assets, not just ETH). This project successfully builds the foundational on-chain components (`SimpleWallet.sol`, EIP-712 verification) upon which such a production-grade system would be built.
 
 ---
 
