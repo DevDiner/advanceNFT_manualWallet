@@ -191,6 +191,11 @@ contract AdvancedNFT is ERC721, Ownable, ReentrancyGuard {
         _mintForImpl(msg.sender, recipient, secret);
     }
 
+    /// allow reveal when the caller != committer ( relayer / smart wallet)
+    function revealPublicFrom(address committer, address recipient, bytes32 secret) external nonReentrant {
+        _mintForImpl(committer, recipient, secret);
+    }
+
     function _mintForImpl(address committer, address recipient, bytes32 secret) private {
         require(saleState == SaleState.PublicSale, "Public sale not active");
         require(recipient != address(0), "recipient=0");
