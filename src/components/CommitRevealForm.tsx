@@ -19,13 +19,13 @@ import config from '../config';
 import { SIMPLE_WALLET_ABI } from '../constants';
 import { MintingInterfaceProps } from '../types';
 
-//  Merkle file shape (runtime-loaded) 
+/** RUNTIME Merkle file shape */
 interface MerkleProofData {
   root: string;
   claims: { [address: string]: { index: number; proof: string[] } };
 }
 
-//  Local types 
+/** Local types */
 type MintingStatus =
   | 'idle'
   | 'loading'
@@ -53,7 +53,7 @@ interface CommitDetails {
   isAirdrop: boolean;
 }
 
-//  Revert reason extraction 
+/** Extract a human-friendly revert reason from nested error objects */
 const findRevertReason = (err: any): string | null => {
   if (typeof err === 'string') {
     const m1 = err.match(/reverted with reason string '([^']+)'/);
@@ -63,8 +63,8 @@ const findRevertReason = (err: any): string | null => {
     return err;
   }
   if (!err || typeof err !== 'object') return null;
-
   if (err.reason) return err.reason;
+
   return (
     findRevertReason(err.error) ||
     findRevertReason(err.data) ||
@@ -74,16 +74,16 @@ const findRevertReason = (err: any): string | null => {
   );
 };
 
-// Extend your existing props
 interface CommitRevealFormProps extends MintingInterfaceProps {
   isAirdrop: boolean;
 }
 
 /**
  * CommitRevealForm
- * - Handles both presale (airdrop) commit/reveal and paid public commit/reveal.
- * - Supports gasless meta-tx via SimpleWallet for public commit/reveal.
- * - Self-heals UI by re-checking on-chain state after failures/rejections.
+ * - Handles airdrop (presale) & public commit/reveal.
+ * - Supports gasless meta-tx via SimpleWallet for public commits/reveals.
+ * - Self-heals the UI after failures by re-checking on-chain state.
+ * - NEW: smart detection + meta-cancel when the commit belongs to the Smart Wallet.
  */
 const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
   account,
@@ -92,7 +92,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
   isAirdrop,
   mintPrice,
 }) => {
-  //  State 
+  /** State */
   const [mintingState, setMintingState] = useState<MintingState>({
     status: 'idle',
     message: null,
@@ -100,27 +100,21 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
   });
   const [secret, setSecret] = useState<string>('');
   const [estimatedGas, setEstimatedGas] = useState<string | null>(null);
-  const [commitDetails, setCommitDetails] = useState<CommitDetails | null>(
-    null
-  );
+  const [commitDetails, setCommitDetails] = useState<CommitDetails | null>(null);
   const [currentBlock, setCurrentBlock] = useState<number>(0);
 
-  const [typedMerkleData, setTypedMerkleData] = useState<MerkleProofData | null>(
-    null
-  );
-  const [isMerkleDataLoading, setIsMerkleDataLoading] =
-    useState<boolean>(isAirdrop);
+  const [typedMerkleData, setTypedMerkleData] = useState<MerkleProofData | null>(null);
+  const [isMerkleDataLoading, setIsMerkleDataLoading] = useState<boolean>(isAirdrop);
   const [isWhitelisted, setIsWhitelisted] = useState<boolean>(!isAirdrop);
   const [merkleProof, setMerkleProof] = useState<string[] | null>(null);
   const [merkleIndex, setMerkleIndex] = useState<number | null>(null);
 
-  const [smartWalletBalance, setSmartWalletBalance] = useState<bigint | null>(
-    null
-  );
+  const [smartWalletBalance, setSmartWalletBalance] = useState<bigint | null>(null);
 
+  /** Local storage for the secret */
   const storageKey = `commitData-${config.contractAddress}-${account}`;
 
-  //  Helpers 
+  /** Error helpers */
   const handleError = useCallback((err: any, fallback: string) => {
     let msg = findRevertReason(err) || fallback;
     msg = msg
@@ -134,10 +128,8 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
   const handleTxError = useCallback(
     (err: any, fallback: string) => {
       handleError(err, fallback);
-      setTimeout(() => {
-        // Self-heal the UI by re-syncing
-        checkCommitStatus();
-      }, 2000);
+      // Self-heal the UI shortly after any failure
+      setTimeout(() => checkCommitStatus(), 2000);
     },
     [handleError] // eslint-disable-line
   );
@@ -149,7 +141,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
     localStorage.removeItem(storageKey);
   }, [storageKey]);
 
-  //  Balances 
+  /** Balances */
   const fetchSmartWalletBalance = useCallback(async () => {
     if (!smartWalletAddress) {
       setSmartWalletBalance(null);
@@ -169,7 +161,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
     fetchSmartWalletBalance();
   }, [fetchSmartWalletBalance]);
 
-  //  Merkle (airdrop) 
+  /** Merkle (airdrop) */
   useEffect(() => {
     if (!isAirdrop) return;
 
@@ -217,7 +209,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
     }
   }, [isAirdrop, account, typedMerkleData]);
 
-  //  Status check 
+  /** Status check */
   const checkCommitStatus = useCallback(async () => {
     if (!account) return;
     setMintingState({
@@ -238,13 +230,13 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
       };
       let found: CombinedCommit | null = null;
 
-      // Look for public commit by EOA
+      // Public commit by EOA
       const pub = await contract.getPublicCommit(account);
       if (pub[0] !== ethers.ZeroHash) {
         found = { ...pub, committer: account, isAirdrop: false };
       }
 
-      // Look for public commit by Smart Wallet (if any)
+      // Public commit by Smart Wallet (if any)
       if (!found && smartWalletAddress) {
         const sw = await contract.getPublicCommit(smartWalletAddress);
         if (sw[0] !== ethers.ZeroHash) {
@@ -252,7 +244,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
         }
       }
 
-      // Look for airdrop commit by EOA
+      // Airdrop commit by EOA
       if (!found) {
         const ad = await contract.getAirdropCommit(account);
         if (ad[0] !== ethers.ZeroHash) {
@@ -299,7 +291,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
     return () => clearInterval(id);
   }, [checkCommitStatus]);
 
-  //  Estimates 
+  /** Estimates (public commit via EOA) */
   const estimateGas = useCallback(async () => {
     if (isAirdrop || !smartWalletAddress) {
       setEstimatedGas(null);
@@ -333,9 +325,8 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
     estimateGas();
   }, [estimateGas]);
 
-  //  Actions 
-  const generateSecret = () =>
-    setSecret(ethers.hexlify(ethers.randomBytes(32)));
+  /** Actions */
+  const generateSecret = () => setSecret(ethers.hexlify(ethers.randomBytes(32)));
 
   const handleCommit = async (viaSmartWallet: boolean) => {
     if (!secret || !account) return;
@@ -358,15 +349,11 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
         const nftIface = new ethers.Interface([
           'function commitPublic(bytes32 commitHash)',
         ]);
-        const calldata = nftIface.encodeFunctionData('commitPublic', [
-          commitHash,
-        ]);
+        const calldata = nftIface.encodeFunctionData('commitPublic', [commitHash]);
 
-        // Browser signer (EOA) signs EIP-712 meta-tx for the SimpleWallet
+        // Browser signer (EOA) signs EIP-712 meta-tx for SimpleWallet
         const browser = new ethers.BrowserProvider(window.ethereum!);
         const signer = await browser.getSigner();
-
-        // Use the live chainId from provider (avoids mismatches)
         const { chainId } = await browser.getNetwork();
 
         const wallet = new ethers.Contract(
@@ -379,7 +366,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
         const domain = {
           name: 'SimpleWallet',
           version: '1',
-          chainId, // bigint is fine in ethers v6
+          chainId,
           verifyingContract: smartWalletAddress,
         };
         const types = {
@@ -449,14 +436,11 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
       const recipient = commitDetails.committer;
 
       if (recipient === smartWalletAddress) {
-        // Meta-tx: wallet.mintFor(recipient, secret)
+        // Meta-tx: wallet executes nft.mintFor(recipient, secret)
         const nftIface = new ethers.Interface([
           'function mintFor(address recipient, bytes32 secret)',
         ]);
-        const calldata = nftIface.encodeFunctionData('mintFor', [
-          recipient,
-          secret,
-        ]);
+        const calldata = nftIface.encodeFunctionData('mintFor', [recipient, secret]);
 
         const browser = new ethers.BrowserProvider(window.ethereum!);
         const signer = await browser.getSigner();
@@ -517,11 +501,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
           ? 'Mint successful! This gasless transaction was sponsored by the relayer.'
           : 'Mint successful! Your NFT has been created.';
 
-      setMintingState({
-        status: 'success',
-        message: successMsg,
-        txHash: finalHash,
-      });
+      setMintingState({ status: 'success', message: successMsg, txHash: finalHash });
 
       await onMintSuccess();
       setTimeout(resetState, 5_000);
@@ -540,18 +520,76 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
     });
 
     try {
-      const contract = await getContractWithSigner();
-      const tx = commitDetails.isAirdrop
-        ? await contract.cancelAirdropCommit()
-        : await contract.cancelPublicCommit();
-      await tx.wait();
+      let finalHash: string | undefined;
+
+      // If the commit lives on the Smart Wallet, we must cancel via meta-tx
+      const isSWCommit =
+        !commitDetails.isAirdrop && smartWalletAddress && commitDetails.committer === smartWalletAddress;
+
+      if (isSWCommit) {
+        const nftIface = new ethers.Interface(['function cancelPublicCommit()']);
+        const calldata = nftIface.encodeFunctionData('cancelPublicCommit', []);
+
+        const browser = new ethers.BrowserProvider(window.ethereum!);
+        const signer = await browser.getSigner();
+        const { chainId } = await browser.getNetwork();
+
+        const wallet = new ethers.Contract(
+          smartWalletAddress!,
+          SIMPLE_WALLET_ABI,
+          signer.provider
+        );
+        const nonce: bigint = await wallet.nonces(account);
+
+        const domain = {
+          name: 'SimpleWallet',
+          version: '1',
+          chainId,
+          verifyingContract: smartWalletAddress!,
+        };
+        const types = {
+          MetaTransaction: [
+            { name: 'from', type: 'address' },
+            { name: 'nonce', type: 'uint256' },
+            { name: 'to', type: 'address' },
+            { name: 'value', type: 'uint256' },
+            { name: 'data', type: 'bytes' },
+          ],
+        };
+        const message = {
+          from: account,
+          nonce,
+          to: config.contractAddress,
+          value: 0,
+          data: calldata,
+        };
+
+        const signature = await signer.signTypedData(domain, types, message);
+        const payload = {
+          ...message,
+          nonce: message.nonce.toString(),
+          value: '0',
+          signature,
+          smartWalletAddress,
+        };
+        const resp = await axios.post('/api/relay', payload);
+        finalHash = resp.data.txHash;
+      } else {
+        // Regular cancel from EOA (airdrop or public commit owned by EOA)
+        const contract = await getContractWithSigner();
+        const tx = commitDetails.isAirdrop
+          ? await contract.cancelAirdropCommit()
+          : await contract.cancelPublicCommit();
+        await tx.wait();
+        finalHash = tx.hash;
+      }
 
       setMintingState({
         status: 'success',
         message: commitDetails.isAirdrop
           ? 'Commit cancelled.'
           : 'Commit cancelled and funds refunded.',
-        txHash: tx.hash,
+        txHash: finalHash!,
       });
       setTimeout(resetState, 5_000);
     } catch (e: any) {
@@ -559,7 +597,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
     }
   };
 
-  //  UI helpers 
+  /** UI helpers */
   const renderAlerts = () => {
     const { status, message, txHash } = mintingState;
     if (status === 'error') {
@@ -585,7 +623,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
     return null;
   };
 
-  //  Rendering 
+  /** Rendering */
   if (isAirdrop && isMerkleDataLoading) {
     return <Alert type="info" message="Verifying whitelist status..." />;
   }
@@ -610,6 +648,8 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
   if (commitDetails) {
     const isWaiting = currentBlock < commitDetails.earliestRevealBlock;
     const isExpired = currentBlock > commitDetails.expiryBlock;
+    const isSWCommit =
+      smartWalletAddress && commitDetails.committer === smartWalletAddress;
 
     return (
       <div className="space-y-4 text-center">
@@ -619,6 +659,14 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
         )}
 
         <h3 className="text-lg font-bold">Commit Found</h3>
+
+        {/* NEW: tiny helper line right under the heading */}
+        <p className="text-xs text-gray-400">
+          We checked your EOA and your Smart Wallet. This commit belongs to:{' '}
+          <span className="font-mono">{commitDetails.committer}</span>{' '}
+          ({isSWCommit ? 'Smart Wallet' : 'EOA'}).
+        </p>
+
         <p className="text-sm text-gray-400">
           An active commit from{' '}
           <span className="font-mono text-xs">{commitDetails.committer}</span>{' '}
@@ -646,9 +694,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
             <p className="font-bold text-blue-300">Waiting for Reveal Window</p>
             <p className="text-xs text-blue-400 mt-1">
               You can reveal at block{' '}
-              <span className="font-mono">
-                {commitDetails.earliestRevealBlock}
-              </span>{' '}
+              <span className="font-mono">{commitDetails.earliestRevealBlock}</span>{' '}
               (Current: <span className="font-mono">{currentBlock}</span>)
             </p>
           </div>
@@ -666,11 +712,7 @@ const CommitRevealForm: React.FC<CommitRevealFormProps> = ({
           onClick={handleReveal}
           disabled={isWaiting || isExpired || isBusy || !secret}
         >
-          {mintingState.status === 'revealing' ? (
-            <Spinner />
-          ) : (
-            'Reveal & Mint NFT'
-          )}
+          {mintingState.status === 'revealing' ? <Spinner /> : 'Reveal & Mint NFT'}
         </Button>
 
         <Button
