@@ -11,6 +11,7 @@ This is a comprehensive, full-stack NFT project designed to serve as a professio
 ## Core Features
 
 -   **Gasless User Experience:** Users can create a personal smart contract wallet and mint NFTs without paying for gas, thanks to a custom-built, EIP-712 compliant meta-transaction relayer.
+-   **Personal Smart Contract Wallets:** Deploys a unique smart contract wallet for each user via a secure factory pattern, enabling meta-transactions and laying the groundwork for account abstraction.
 -   **Fair & Secure Minting:** Employs a commit-reveal scheme with a configurable delay to prevent front-running and guarantee a fair minting experience.
 -   **Secure Contributor Payouts:** Implements a battle-tested, pull-based payment splitter for distributing minting proceeds, ensuring contributors can securely and reliably withdraw their share of the funds at any time.
 -   **Multi-Asset Portfolio Dashboard:** A feature-rich "My Wallet" page that acts as a true portfolio viewer, using a resilient, **rate-limit-aware** Etherscan API client to display a wallet's balance of ETH, all **ERC20** tokens, and all **ERC-721 & ERC-1155** NFTs.
@@ -253,7 +254,63 @@ You must re-deploy for the new environment variables to take effect.
 ```bash
 npm run deploy:vercel:prod
 ```
-✅ Your full-stack dApp is now live!
+
+### Step 7: Open the Sale on the Live Contract
+
+For security, your `AdvancedNFT` smart contract is deployed with its sale state set to `Closed` by default. After your Vercel deployment is live, you must manually open the sale from your local terminal to allow users to mint.
+
+-   **To start the presale/airdrop:**
+    ```bash
+    npm run sale:presale:sepolia
+    ```
+
+-   **To start the public sale:**
+    ```bash
+    npm run sale:public:sepolia
+    ```
+
+-   **To close the sale again:**
+    ```bash
+    npm run sale:closed:sepolia
+    ```
+
+These commands use the `PRIVATE_KEY` from your `.env` file (the contract owner) to send a transaction to the live contract on Sepolia, changing its state.
+
+✅ Your full-stack dApp is now live and ready for minting!
+
+---
+
+## Architectural Deep Dive: The Build & Deployment Pipeline
+
+A common question is: "When deploying to Vercel, where does the smart contract compilation happen, and how do the live frontend and backend get the ABIs?"
+
+The key concept to understand is that **all smart contract compilation and artifact generation happens on your local machine *before* you deploy.** Vercel itself does not compile any Solidity code. It only serves the static files and serverless functions you provide it.
+
+Here is the step-by-step data flow:
+
+1.  **Local Compilation (`npm run deploy:sepolia`)**
+    -   When you run the deployment script, **Hardhat** compiles your `.sol` files from `/contracts` on your local computer.
+    -   This generates the full, detailed ABIs and bytecode in the temporary `/artifacts` directory.
+
+2.  **Local Artifact Curation**
+    -   The same deployment script (`scripts/0_deploy.js`) then reads these temporary artifacts and creates two permanent, curated files for your application:
+        -   **`api/_ABI.js`**: This file is auto-generated and contains **only** the ABIs for `SimpleWallet.sol` and `SimpleWalletFactory.sol`. This is a deliberate security design choice, as the backend relayer's only job is to deploy wallets and relay transactions *to* them. It never interacts with the `AdvancedNFT` contract, so it doesn't need its ABI.
+        -   **`src/constants.ts`**: This file contains the full ABI for `AdvancedNFT.sol`. It's included directly in the frontend source code because the React dApp needs it to craft all user-facing interactions like minting and claiming.
+
+3.  **Committing Artifacts to Git (`git commit`)**
+    -   This is the most critical step. You **must** commit the newly generated `api/_ABI.js` and other artifacts (`deployed-addresses.json`, `public/merkle-proofs.json`) to your Git repository.
+    -   These files are now part of your project's official source code history.
+
+4.  **Vercel Build Process (`vercel --prod`)**
+    -   When you deploy, Vercel clones your Git repository.
+    -   It sees the `api/_ABI.js` file and the `src/constants.ts` file because they were committed in the previous step.
+    -   Vercel then builds your frontend and prepares your serverless functions using these files. It **does not** run `hardhat compile`.
+
+5.  **The Live Application**
+    -   **Frontend:** Your live dApp at `your-app.vercel.app` uses the `AdvancedNFT` ABI that was bundled into its JavaScript from `src/constants.ts`.
+    -   **Backend:** When the frontend calls an API endpoint like `/api/relay`, the Vercel serverless function executes. It loads the wallet ABIs by importing the `api/_ABI.js` file that was deployed with it.
+
+This clear separation ensures the build process is fast, reproducible, and secure, following the principle of least privilege for the backend relayer.
 
 ---
 
@@ -332,9 +389,17 @@ This workflow ensures that the live Vercel deployment is built with the exact sa
 
 ## Project Structure
 
--   `/api`: Contains the Vercel-native serverless functions for the relayer backend.
--   `/contracts`: Contains all Solidity smart contracts.
+-   `/contracts`: Contains the full, human-readable Solidity source code for all smart contracts (`AdvancedNFT.sol`, `SimpleWallet.sol`, etc.).
 -   `/scripts`: Holds all Hardhat scripts for automating deployment, simulation, and operational tasks.
 -   `/src`: The source code for the React/Vite frontend dApp.
+-   `/api`: Contains the Vercel-native serverless functions for the relayer backend.
 -   `hardhat.config.js`: The central configuration file for the Hardhat environment.
 -   `vercel.json`: The configuration file for deploying the project to Vercel.
+
+### A Note on ABIs: Frontend vs. Backend
+
+It's important to understand the architectural decision regarding where different contract ABIs (Application Binary Interfaces) are located:
+
+-   **Frontend ABIs (in `/src/constants.ts`)**: The React frontend is responsible for all user-facing interactions with the `AdvancedNFT` contract (like committing and revealing a mint). Therefore, the full ABI for `AdvancedNFT.sol` resides in `src/constants.ts`. This allows the dApp to correctly encode function calls for both standard and meta-transactions.
+
+-   **Backend ABIs (in `/api/_ABI.js`)**: The backend relayer has a very specific and limited role: it deploys `SimpleWallet` contracts (using `SimpleWalletFactory`) and relays signed meta-transactions *to* a `SimpleWallet`. It **never** calls the `AdvancedNFT` contract directly. For this reason, the auto-generated `api/_ABI.js` file **only** contains the ABIs for `SimpleWallet.sol` and `SimpleWalletFactory.sol`. This is a deliberate security and design choice that follows the principle of least privilege; the backend only knows about the contracts it absolutely needs to touch.
