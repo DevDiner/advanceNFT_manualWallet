@@ -4,7 +4,7 @@
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-View%20on%20Vercel-black?style=for-the-badge)](https://your-vercel-deployment-link.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-<table border="0" cellspacing="0" cellpadding="0">
+<table>
   <tr>
     <td><img src="MainPage.png" alt="Main Page" width="450"></td>
     <td><img src="Airdrop.png"  alt="Airdrop"   width="450"></td>
