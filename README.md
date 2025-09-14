@@ -10,11 +10,10 @@
     <td><img src="Airdrop.png"  alt="Airdrop"   width="450"></td>
     <td><img src="PublicSale.png"  alt="PublicSale" width="450"></td>
   </tr>
-  ![alt text](SmartCommit.png)
   <tr>
     <td><img src="WalletEOA.png" alt="WalletEOA" width="450"></td>
     <td><img src="SmartWalletPage.png" alt="SmartWalletPage" width="450"></td>
-
+    <td><img src="SmartCommit.png" alt="SmartCommit" width="450"></td>
   </tr>
 </table>
 
