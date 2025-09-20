@@ -1,13 +1,15 @@
 
 # Advanced Full-Stack NFT Project + Built From-Scratch Wallet
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-View%20on%20Vercel-black?style=for-the-badge)](https://your-vercel-deployment-link.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-View%20on%20Vercel-black?style=for-the-badge)](https://nft-smart-contract-wallet-amhs1i4al-devds-projects-0114b344.vercel.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 <p align="center">
   <img src="advance-nft-demo-gif.gif" alt="advance-nft-demo-gif" width="450">
-</p>
+  <img src="contract-profit-split-gif.gif" alt="profit-splitting-among contributors" width="450">
 
+</p>
+<p><i>   [Left: full stack dApp demo; Right: profit splitting among 2 contributors] </i></p>
 This is a comprehensive, full-stack NFT project designed to serve as a professional portfolio piece. It demonstrates a deep understanding of advanced blockchain concepts, secure smart contract development, and modern dApp architecture, including a gasless user experience via a custom meta-transaction relayer.
 <table>
   <tr>
