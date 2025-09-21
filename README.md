@@ -9,7 +9,7 @@
   <img src="contract-profit-split-gif.gif" alt="profit-splitting-among contributors" width="450">
 
 </p>
-<p><i>   [Left: full stack dApp demo; Right: profit splitting among 2 contributors] </i></p>
+<p align="center"><em>[Left: full stack dApp demo; Right: profit splitting among 2 contributors]</em></p>
 This is a comprehensive, full-stack NFT project designed to serve as a professional portfolio piece. It demonstrates a deep understanding of advanced blockchain concepts, secure smart contract development, and modern dApp architecture, including a gasless user experience via a custom meta-transaction relayer.
 <table>
   <tr>
