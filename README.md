@@ -4,7 +4,7 @@
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-View%20on%20Vercel-black?style=for-the-badge)](https://nft-smart-contract-wallet-amhs1i4al-devds-projects-0114b344.vercel.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-<p align="center">
+<p >
   <img src="advance-nft-demo-gif.gif" alt="advance-nft-demo-gif" width="450">
   <img src="contract-profit-split-gif.gif" alt="profit-splitting-among contributors" width="450">
 
