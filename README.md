@@ -5,8 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 <p >
-  <img src="advance-nft-demo-gif.gif" alt="advance-nft-demo-gif" width="450">
-  <img src="contract-profit-split-gif.gif" alt="profit-splitting-among contributors" width="450">
+  <img src="advance-nft-demo-gif.gif" alt="advance-nft-demo-gif" width="48%">
+  <img src="contract-profit-split-gif.gif" alt="profit-splitting-among contributors" width="48%">
 
 </p>
 <p align="center"><em>[Left: full stack dApp demo; Right: profit splitting among 2 contributors]</em></p>
