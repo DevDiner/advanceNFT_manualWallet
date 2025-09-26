@@ -36,6 +36,9 @@ This is a comprehensive, full-stack NFT project designed to serve as a professio
 -   **100% On-Chain Generative Art:** NFT artwork is generated and stored directly on the blockchain as an SVG, making the asset entirely self-contained and permanent.
 -   **Gas-Efficient Airdrop System:** Utilizes a Merkle tree to manage the presale whitelist, allowing for a virtually unlimited number of users with minimal on-chain costs.
 -   **From-Scratch Cryptography Demo:** Includes a standalone `wallet.js` utility that manually performs all the steps of a raw Ethereum transaction, proving a first-principles understanding of the underlying cryptography.
+<div align= "center">
+<img src="MetaTx.png" alt="MetaTx" width="450">
+</div>
 
 ---
 
